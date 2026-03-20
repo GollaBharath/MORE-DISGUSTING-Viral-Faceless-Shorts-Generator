@@ -13,8 +13,12 @@ services:
       - DEFAULT_VIDEO_ORIENTATION
       - DEFAULT_VIDEO_WIDTH
       - DEFAULT_VIDEO_HEIGHT
+      - APP_DB_PATH
+      - INPUT_VIDEOS_DIR
+      - OUTPUT_VIDEOS_DIR
     volumes:
       - ./videos:/mnt/videos
+      - ./data:/app/data
   coqui:
     build:
       context: ./coqui

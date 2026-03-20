@@ -8,63 +8,247 @@
 			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 			rel="stylesheet" />
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			rel="preconnect"
+			href="https://fonts.gstatic.com"
+			crossorigin="anonymous" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap"
+			rel="stylesheet" />
 		<style>
-			body {
-				font-family: sans-serif;
+			:root {
+				--bg-1: #fff7e8;
+				--bg-2: #ebf7f4;
+				--ink: #152126;
+				--muted: #5c6b70;
+				--card: #ffffff;
+				--line: #d8e2e0;
+				--accent: #0a8f77;
+				--accent-dark: #056a58;
+				--accent-soft: #d5f4ee;
+				--warning: #ef7f3b;
+				--radius: 16px;
 			}
 
-			.top-bar {
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				font-family: "DM Sans", sans-serif;
+				color: var(--ink);
+				background:
+					radial-gradient(circle at 10% 0%, var(--bg-1), transparent 42%),
+					radial-gradient(circle at 90% 100%, var(--bg-2), transparent 45%),
+					#f9fcfb;
+				min-height: 100vh;
+			}
+
+			.page-wrap {
+				padding: 0.9rem;
+				max-width: 1200px;
+				margin: 0 auto;
+			}
+
+			.hero {
+				background: linear-gradient(130deg, #0f2f36 0%, #126a66 80%);
+				color: #fff;
+				border-radius: var(--radius);
 				padding: 1rem;
-				background: #f8f9fa;
-				border-bottom: 1px solid #dee2e6;
+				box-shadow: 0 14px 28px rgba(14, 48, 54, 0.18);
+				position: relative;
+				overflow: hidden;
+			}
+
+			.hero::after {
+				content: "";
+				position: absolute;
+				right: -30px;
+				top: -30px;
+				width: 150px;
+				height: 150px;
+				border-radius: 50%;
+				background: rgba(255, 255, 255, 0.13);
+			}
+
+			.hero h1 {
+				font-family: "Space Grotesk", sans-serif;
+				font-size: 1.25rem;
+				margin: 0;
+			}
+
+			.hero p {
+				margin: 0.45rem 0 0;
+				font-size: 0.92rem;
+				opacity: 0.92;
+			}
+
+			.shell {
+				display: grid;
+				gap: 0.8rem;
+				margin-top: 0.8rem;
+			}
+
+			.panel {
+				background: var(--card);
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				padding: 0.9rem;
+				box-shadow: 0 10px 24px rgba(14, 43, 44, 0.05);
+				animation: fadeSlide 0.45s ease both;
+			}
+
+			.panel h2,
+			.panel h3 {
+				font-family: "Space Grotesk", sans-serif;
+				font-size: 1rem;
+				margin: 0 0 0.75rem;
+			}
+
+			.quick-tools {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 0.55rem;
+			}
+
+			.step-label {
+				display: inline-block;
+				font-size: 0.74rem;
+				font-weight: 700;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+				padding: 0.2rem 0.5rem;
+				border-radius: 999px;
+				background: var(--accent-soft);
+				color: var(--accent-dark);
+				margin-bottom: 0.55rem;
+			}
+
+			.btn-primary {
+				background-color: var(--accent);
+				border-color: var(--accent);
+			}
+
+			.btn-primary:hover,
+			.btn-primary:focus-visible {
+				background-color: var(--accent-dark);
+				border-color: var(--accent-dark);
+			}
+
+			.btn-outline-dark {
+				border-color: #32484d;
+				color: #32484d;
+			}
+
+			.btn-outline-dark:hover {
+				background: #32484d;
+				color: #fff;
+			}
+
+			.orient-grid {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 0.55rem;
+			}
+
+			.custom-size-grid {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 0.55rem;
 			}
 
 			#card-grid {
-				display: flex;
-				flex: 1;
-				flex-wrap: wrap;
-				gap: 1rem;
-				padding: 1rem;
-				justify-content: center;
+				display: grid;
+				gap: 0.7rem;
 			}
 
 			#card-grid:empty::before {
-				content: "No videos found.\ATry generating a script from a prompt.";
-				white-space: pre-line;
+				content: "No jobs yet. Start from Step 1 above.";
 				display: block;
+				padding: 0.8rem;
 				text-align: center;
-				color: #6c757d;
-				font-size: 1.2rem;
-				margin-top: 3rem;
+				border: 1px dashed var(--line);
+				border-radius: 12px;
+				color: var(--muted);
+				font-size: 0.92rem;
 			}
 
 			.card-tile {
-				width: 360px;
-				border: 1px solid #ddd;
-				border-radius: 6px;
-				padding: 1rem;
-				background-color: #fff;
-				position: relative;
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 0.75rem;
+				background: #fff;
 			}
 
 			.card-tile h6 {
-				font-weight: bold;
+				font-weight: 700;
+				font-size: 0.96rem;
 				cursor: pointer;
 			}
 
 			.card-tile p {
-				font-size: 0.9rem;
+				font-size: 0.88rem;
+				margin-bottom: 0.35rem;
 				cursor: pointer;
 			}
 
 			.script-editor {
-				min-height: 180px;
+				min-height: 140px;
 				font-size: 0.88rem;
 			}
 
-			.progress {
-				height: 8px;
-				margin-top: 10px;
+			.preview-grid {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 0.65rem;
+			}
+
+			.preview-card {
+				border: 1px solid var(--line);
+				border-radius: 12px;
+				padding: 0.7rem;
+				background: #fff;
+			}
+
+			.preview-frame {
+				aspect-ratio: 9 / 16;
+				border-radius: 10px;
+				background: linear-gradient(140deg, #edf4f2 0%, #dcebec 100%);
+				border: 1px dashed #b8cecb;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 0.8rem;
+				color: #58706f;
+			}
+
+			.preview-meta {
+				margin-top: 0.55rem;
+				font-size: 0.85rem;
+				color: var(--muted);
+			}
+
+			.tag-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.35rem;
+				margin-top: 0.5rem;
+			}
+
+			.tag-chip {
+				font-size: 0.74rem;
+				padding: 0.2rem 0.45rem;
+				border-radius: 999px;
+				background: #f0f7f5;
+				border: 1px solid #cbe2dd;
+				color: #25514a;
+			}
+
+			.copy-tags-btn {
+				font-size: 0.8rem;
+				margin-top: 0.55rem;
 			}
 
 			.toast-container {
@@ -73,74 +257,84 @@
 				right: 1rem;
 				z-index: 9999;
 			}
+
+			footer {
+				font-size: 0.86rem;
+				color: #4f6469;
+			}
+
+			@media (min-width: 760px) {
+				.page-wrap {
+					padding: 1.1rem;
+				}
+
+				.quick-tools {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				.orient-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				.custom-size-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				.preview-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+			}
+
+			@media (min-width: 1024px) {
+				.shell {
+					grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+					align-items: start;
+				}
+
+				.panel-sticky {
+					position: sticky;
+					top: 0.8rem;
+				}
+
+				.preview-grid {
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+				}
+			}
+
+			@keyframes fadeSlide {
+				from {
+					opacity: 0;
+					transform: translateY(8px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
 		</style>
 	</head>
 
-	<body class="d-flex flex-column min-vh-100">
-		<div
-			class="top-bar px-3 py-2 border-bottom bg-light d-flex flex-wrap justify-content-between align-items-center">
-			<h5 class="mb-2 mb-md-0 fw-semibold">Viral Faceless Shorts Generator</h5>
-			<div class="d-flex gap-2 align-items-center flex-wrap">
-				<select
-					id="languageSelect"
-					class="form-select form-select-sm"
-					style="min-width: 110px"
-					disabled>
-					<option>Lang...</option>
-				</select>
-				<select
-					id="voiceSelect"
-					class="form-select form-select-sm"
-					style="min-width: 170px"
-					disabled>
-					<option>Loading voices...</option>
-				</select>
-				<button
-					class="btn btn-outline-secondary btn-sm"
-					id="previewVoiceBtn"
-					disabled>
-					Preview Voice
-				</button>
-				<button
-					class="btn btn-primary"
-					data-bs-toggle="modal"
-					data-bs-target="#promptWorkflowModal">
-					Prompt Workflow
-				</button>
-			</div>
-		</div>
+	<body>
+		<div class="page-wrap">
+			<header class="hero">
+				<h1>Viral Faceless Shorts Generator</h1>
+				<p>Create, voice, and render from one flow.</p>
+			</header>
 
-		<div
-			class="modal fade"
-			id="promptWorkflowModal"
-			tabindex="-1"
-			aria-labelledby="promptWorkflowModalLabel"
-			aria-hidden="true">
-			<div class="modal-dialog modal-lg">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title" id="promptWorkflowModalLabel">
-							Generate Script From Prompt
-						</h5>
-						<button
-							type="button"
-							class="btn-close"
-							data-bs-dismiss="modal"
-							aria-label="Close"></button>
-					</div>
-					<div class="modal-body">
-						<div class="mb-3">
-							<label for="scriptPrompt" class="form-label"
-								>Prompt For Gemini</label
-							>
-							<textarea
-								class="form-control"
-								id="scriptPrompt"
-								rows="6"
-								placeholder="Example: Create a fast-paced script about 5 AI tools that save time for creators, with a strong hook and CTA."></textarea>
-						</div>
-						<div class="row g-2">
-							<div class="col-md-4">
+			<div class="shell">
+				<main class="d-grid gap-2">
+					<section class="panel">
+						<span class="step-label">Step 1</span>
+						<h2>Create Script From Prompt</h2>
+						<label for="scriptPrompt" class="form-label">Prompt</label>
+						<textarea
+							class="form-control"
+							id="scriptPrompt"
+							rows="4"
+							placeholder="Example: 5 little-known AI tools that save creators 3+ hours per day."></textarea>
+
+						<div class="orient-grid mt-2">
+							<div>
 								<label for="orientationSelect" class="form-label"
 									>Orientation</label
 								>
@@ -152,16 +346,31 @@
 									<option value="custom">Custom</option>
 								</select>
 							</div>
-							<div class="col-md-4 d-none" id="customWidthGroup">
+							<div class="d-flex align-items-end">
+								<div class="form-check mb-2">
+									<input
+										class="form-check-input"
+										type="checkbox"
+										id="includeSubtitles"
+										checked />
+									<label class="form-check-label" for="includeSubtitles">
+										Include subtitles
+									</label>
+								</div>
+							</div>
+						</div>
+
+						<div class="custom-size-grid mt-1">
+							<div class="d-none" id="customWidthGroup">
 								<label for="customWidth" class="form-label">Custom Width</label>
 								<input
 									id="customWidth"
 									type="number"
 									min="1"
 									class="form-control"
-									placeholder="e.g. 1080" />
+									placeholder="1080" />
 							</div>
-							<div class="col-md-4 d-none" id="customHeightGroup">
+							<div class="d-none" id="customHeightGroup">
 								<label for="customHeight" class="form-label"
 									>Custom Height</label
 								>
@@ -170,28 +379,275 @@
 									type="number"
 									min="1"
 									class="form-control"
-									placeholder="e.g. 1920" />
+									placeholder="1920" />
 							</div>
 						</div>
-					</div>
-					<div class="modal-footer">
-						<button class="btn btn-secondary" data-bs-dismiss="modal">
-							Close
-						</button>
-						<button
-							class="btn btn-primary"
-							onclick="startPromptWorkflow()"
-							data-bs-dismiss="modal">
-							Generate Script
-						</button>
+
+						<div class="d-grid mt-2">
+							<button class="btn btn-primary" onclick="startPromptWorkflow()">
+								Generate Script
+							</button>
+						</div>
+					</section>
+
+					<section class="panel">
+						<span class="step-label">Step 2</span>
+						<h3>Current Jobs</h3>
+						<div id="card-grid"></div>
+					</section>
+
+					<section class="panel">
+						<span class="step-label">Library</span>
+						<h3>Uploaded Videos</h3>
+						<div class="preview-grid" id="uploadedVideosGrid">
+							<div
+								style="
+									grid-column: 1/-1;
+									text-align: center;
+									padding: 2rem;
+									color: #5c6b70;
+								">
+								<p style="margin: 0; font-size: 0.92rem">
+									No uploaded videos yet. Upload videos in Settings.
+								</p>
+							</div>
+							<article class="preview-card">
+								<div class="preview-frame">Generated preview 1</div>
+								<div class="preview-meta">`ai-tools-hustle-cut.mp4`</div>
+								<div class="tag-row">
+									<span class="tag-chip">#ai</span>
+									<span class="tag-chip">#productivity</span>
+									<span class="tag-chip">#creator</span>
+								</div>
+								<button
+									type="button"
+									class="btn btn-sm btn-outline-secondary copy-tags-btn copy-tag-btn"
+									data-tags="#ai #productivity #creator">
+									Copy Tags
+								</button>
+							</article>
+							<article class="preview-card">
+								<div class="preview-frame">Generated preview 2</div>
+								<div class="preview-meta">`mindset-5-facts-short.mp4`</div>
+								<div class="tag-row">
+									<span class="tag-chip">#mindset</span>
+									<span class="tag-chip">#shorts</span>
+									<span class="tag-chip">#dailyhabits</span>
+								</div>
+								<button
+									type="button"
+									class="btn btn-sm btn-outline-secondary copy-tags-btn copy-tag-btn"
+									data-tags="#mindset #shorts #dailyhabits">
+									Copy Tags
+								</button>
+							</article>
+						</div>
+					</section>
+				</main>
+
+				<aside class="d-grid gap-2 panel-sticky">
+					<section class="panel">
+						<span class="step-label">Step 0</span>
+						<h3>Voice + Quick Actions</h3>
+						<div class="quick-tools">
+							<div>
+								<label for="languageSelect" class="form-label">Language</label>
+								<select id="languageSelect" class="form-select" disabled>
+									<option>Lang...</option>
+								</select>
+							</div>
+							<div>
+								<label for="voiceSelect" class="form-label">Voice</label>
+								<select id="voiceSelect" class="form-select" disabled>
+									<option>Loading voices...</option>
+								</select>
+							</div>
+						</div>
+						<div class="d-grid gap-2 mt-2">
+							<button
+								class="btn btn-outline-secondary"
+								id="previewVoiceBtn"
+								disabled>
+								Preview Voice
+							</button>
+							<button
+								class="btn btn-outline-dark"
+								id="openSettingsBtn"
+								data-bs-toggle="modal"
+								data-bs-target="#settingsModal">
+								Settings
+							</button>
+						</div>
+					</section>
+				</aside>
+			</div>
+
+			<div
+				class="modal fade"
+				id="settingsModal"
+				tabindex="-1"
+				aria-labelledby="settingsModalLabel"
+				aria-hidden="true">
+				<div class="modal-dialog modal-lg">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title" id="settingsModalLabel">App Settings</h5>
+							<button
+								type="button"
+								class="btn-close"
+								data-bs-dismiss="modal"
+								aria-label="Close"></button>
+						</div>
+						<div class="modal-body">
+							<div class="row g-3">
+								<div class="col-md-6">
+									<label for="settingsInputVideosDir" class="form-label"
+										>Input Videos Folder</label
+									>
+									<input
+										id="settingsInputVideosDir"
+										type="text"
+										class="form-control"
+										placeholder="/mnt/videos" />
+								</div>
+								<div class="col-md-6">
+									<label for="settingsOutputVideosDir" class="form-label"
+										>Rendered Videos Folder</label
+									>
+									<input
+										id="settingsOutputVideosDir"
+										type="text"
+										class="form-control"
+										placeholder="/mnt/videos/generated" />
+								</div>
+								<div class="col-md-4">
+									<label for="settingsDefaultOrientation" class="form-label"
+										>Default Orientation</label
+									>
+									<select id="settingsDefaultOrientation" class="form-select">
+										<option value="portrait">portrait</option>
+										<option value="landscape">landscape</option>
+										<option value="square">square</option>
+										<option value="original">original</option>
+										<option value="custom">custom</option>
+									</select>
+								</div>
+								<div class="col-md-4">
+									<label for="settingsDefaultWidth" class="form-label"
+										>Default Width</label
+									>
+									<input
+										id="settingsDefaultWidth"
+										type="number"
+										min="1"
+										class="form-control"
+										placeholder="1080" />
+								</div>
+								<div class="col-md-4">
+									<label for="settingsDefaultHeight" class="form-label"
+										>Default Height</label
+									>
+									<input
+										id="settingsDefaultHeight"
+										type="number"
+										min="1"
+										class="form-control"
+										placeholder="1920" />
+								</div>
+								<div class="col-md-6">
+									<label for="settingsSpeakerId" class="form-label"
+										>Default Speaker ID</label
+									>
+									<input
+										id="settingsSpeakerId"
+										type="text"
+										class="form-control"
+										placeholder="Ana Florence" />
+								</div>
+								<div class="col-md-3">
+									<label for="settingsLanguageId" class="form-label"
+										>Default Language ID</label
+									>
+									<input
+										id="settingsLanguageId"
+										type="text"
+										class="form-control"
+										placeholder="en" />
+								</div>
+								<div class="col-md-3">
+									<label for="settingsLocale" class="form-label">Locale</label>
+									<input
+										id="settingsLocale"
+										type="text"
+										class="form-control"
+										placeholder="english" />
+								</div>
+								<div class="col-12">
+									<div class="form-check">
+										<input
+											class="form-check-input"
+											type="checkbox"
+											id="settingsSubtitlesDefault" />
+										<label
+											class="form-check-label"
+											for="settingsSubtitlesDefault">
+											Enable subtitles by default
+										</label>
+									</div>
+								</div>
+								<div class="col-12">
+									<hr class="my-1" />
+									<label for="uploadVideosInput" class="form-label mb-1"
+										>Upload Background Videos To Current Input Folder</label
+									>
+									<input
+										id="uploadVideosInput"
+										type="file"
+										accept="video/*,.mp4,.mov,.mkv,.webm"
+										class="form-control"
+										multiple />
+									<div class="d-flex gap-2 mt-2">
+										<button
+											class="btn btn-outline-primary btn-sm"
+											id="uploadVideosBtn">
+											Upload Videos
+										</button>
+									</div>
+									<div
+										class="text-muted mt-1"
+										style="font-size: 0.8rem"
+										id="uploadVideosStatus">
+										Uploaded files are added to your selected input source
+										folder.
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<button class="btn btn-secondary" data-bs-dismiss="modal">
+								Close
+							</button>
+							<button class="btn btn-primary" id="saveSettingsBtn">
+								Save Settings
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
+
+			<div class="toast-container" id="toast-container"></div>
+
+			<footer class="border-top text-center py-3 mt-2">
+				Made with <span style="color: #d02f2f">&hearts;</span> by
+				<a
+					href="https://cirociampaglia.it"
+					class="text-dark"
+					target="_blank"
+					rel="noopener noreferrer"
+					>Ciro Ciampaglia</a
+				>
+			</footer>
 		</div>
-
-		<div id="card-grid"></div>
-
-		<div class="toast-container" id="toast-container"></div>
 
 		<script>
 			const cardGrid = document.getElementById("card-grid");
@@ -200,6 +656,34 @@
 			const voiceSelect = document.getElementById("voiceSelect");
 			const previewVoiceBtn = document.getElementById("previewVoiceBtn");
 			const orientationSelect = document.getElementById("orientationSelect");
+			const includeSubtitlesInput = document.getElementById("includeSubtitles");
+			const openSettingsBtn = document.getElementById("openSettingsBtn");
+			const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+			const settingsModalEl = document.getElementById("settingsModal");
+			const settingsInputVideosDir = document.getElementById(
+				"settingsInputVideosDir",
+			);
+			const settingsOutputVideosDir = document.getElementById(
+				"settingsOutputVideosDir",
+			);
+			const settingsDefaultOrientation = document.getElementById(
+				"settingsDefaultOrientation",
+			);
+			const settingsDefaultWidth = document.getElementById(
+				"settingsDefaultWidth",
+			);
+			const settingsDefaultHeight = document.getElementById(
+				"settingsDefaultHeight",
+			);
+			const settingsSpeakerId = document.getElementById("settingsSpeakerId");
+			const settingsLanguageId = document.getElementById("settingsLanguageId");
+			const settingsLocale = document.getElementById("settingsLocale");
+			const settingsSubtitlesDefault = document.getElementById(
+				"settingsSubtitlesDefault",
+			);
+			const uploadVideosInput = document.getElementById("uploadVideosInput");
+			const uploadVideosBtn = document.getElementById("uploadVideosBtn");
+			const uploadVideosStatus = document.getElementById("uploadVideosStatus");
 			const customWidthInput = document.getElementById("customWidth");
 			const customHeightInput = document.getElementById("customHeight");
 			const customWidthGroup = document.getElementById("customWidthGroup");
@@ -286,7 +770,7 @@
           <textarea class="form-control script-editor mb-2"></textarea>
           <button class="btn btn-success btn-sm w-100 approve-btn">Approve Script</button>
         </div>
-        <div class="progress">
+        <div class="progress" style="height: 8px;">
           <div class="progress-bar" style="width: 5%"></div>
         </div>
         <div class="status-label mt-1 text-muted" style="font-size: 0.8rem;">Queued...</div>
@@ -302,6 +786,13 @@
 					return `Orientation: custom (${settings.width}x${settings.height})`;
 				}
 				return `Orientation: ${settings.orientation}`;
+			}
+
+			function formatSubtitlesText(settings) {
+				if (!settings) return "Subtitles: on";
+				return settings.includeSubtitles === false
+					? "Subtitles: off"
+					: "Subtitles: on";
 			}
 
 			function clearRetryButton(id) {
@@ -465,6 +956,10 @@
 					return;
 				}
 
+				const includeSubtitles = includeSubtitlesInput
+					? Boolean(includeSubtitlesInput.checked)
+					: true;
+
 				let orientationSettings;
 				try {
 					orientationSettings = getSelectedOrientationSettings();
@@ -479,11 +974,13 @@
 				if (card) {
 					const orientationPreview = card.querySelector(".orientation-preview");
 					if (orientationPreview) {
-						orientationPreview.textContent =
-							formatOrientationText(orientationSettings);
+						orientationPreview.textContent = `${formatOrientationText(orientationSettings)} | ${formatSubtitlesText({ includeSubtitles })}`;
 					}
 				}
-				await runGenerationForCard(id, prompt, orientationSettings);
+				await runGenerationForCard(id, prompt, {
+					...orientationSettings,
+					includeSubtitles,
+				});
 				document.getElementById("scriptPrompt").value = "";
 			}
 
@@ -562,12 +1059,29 @@
 					return;
 				}
 
-				alignQueue.push({ id, generated, ttsAudio });
-				updateCard(id, { progress: 65, label: "TTS generated" });
+				if (generated.includeSubtitles === false) {
+					burnQueue.push({
+						id,
+						srt: null,
+						ttsAudio,
+						title: generated.title,
+						orientation: generated.orientation,
+						width: generated.width,
+						height: generated.height,
+					});
+					updateCard(id, {
+						progress: 85,
+						label: "TTS ready. Rendering video...",
+					});
+				} else {
+					alignQueue.push({ id, generated, ttsAudio });
+					updateCard(id, { progress: 65, label: "TTS generated" });
+				}
 
 				ttsLock = false;
 				processTTS();
 				processAlign();
+				processBurn();
 			}
 
 			async function processAlign() {
@@ -677,9 +1191,9 @@
 			}
 
 			function copyToClipboard(text) {
-				navigator.clipboard
-					.writeText(text)
-					.then(() => showToast("Copied to clipboard"));
+				navigator.clipboard.writeText(text).then(() => {
+					showToast("Copied to clipboard");
+				});
 			}
 
 			async function buildHttpError(res, fallbackMessage) {
@@ -716,7 +1230,6 @@
 					const err = await buildHttpError(res, "Failed to generate script");
 					const message = err.message;
 
-					// Try to honor rate-limit wait hints from headers or API message text.
 					const retryAfterHeader = res.headers.get("retry-after");
 					if (retryAfterHeader) {
 						const retryAfterSeconds = Number.parseInt(retryAfterHeader, 10);
@@ -839,7 +1352,103 @@
 					defaultOrientation: data?.defaultOrientation || "portrait",
 					defaultWidth: data?.defaultWidth || null,
 					defaultHeight: data?.defaultHeight || null,
+					subtitlesEnabledByDefault: data?.subtitlesEnabledByDefault !== false,
 				};
+			}
+
+			async function fetchRuntimeSettings() {
+				const res = await fetch("/api/settings");
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to fetch settings");
+				}
+				return res.json();
+			}
+
+			function populateSettingsForm(settings) {
+				settingsInputVideosDir.value = settings?.input_videos_dir || "";
+				settingsOutputVideosDir.value = settings?.output_videos_dir || "";
+				settingsDefaultOrientation.value =
+					settings?.default_video_orientation || "portrait";
+				settingsDefaultWidth.value = settings?.default_video_width || "";
+				settingsDefaultHeight.value = settings?.default_video_height || "";
+				settingsSpeakerId.value = settings?.coqui_speaker_id || "";
+				settingsLanguageId.value = settings?.coqui_language_id || "";
+				settingsLocale.value = settings?.locale || "english";
+				settingsSubtitlesDefault.checked =
+					settings?.subtitles_enabled_by_default !== false;
+			}
+
+			function collectSettingsPayload() {
+				return {
+					input_videos_dir: settingsInputVideosDir.value.trim(),
+					output_videos_dir: settingsOutputVideosDir.value.trim(),
+					default_video_orientation:
+						settingsDefaultOrientation.value || "portrait",
+					default_video_width: Number.parseInt(settingsDefaultWidth.value, 10),
+					default_video_height: Number.parseInt(
+						settingsDefaultHeight.value,
+						10,
+					),
+					coqui_speaker_id: settingsSpeakerId.value.trim(),
+					coqui_language_id: settingsLanguageId.value.trim(),
+					locale: settingsLocale.value.trim() || "english",
+					subtitles_enabled_by_default: Boolean(
+						settingsSubtitlesDefault.checked,
+					),
+				};
+			}
+
+			async function loadSettingsIntoModal() {
+				try {
+					const settings = await fetchRuntimeSettings();
+					populateSettingsForm(settings);
+				} catch (err) {
+					showToast(err?.message || "Failed to load settings");
+				}
+			}
+
+			async function saveSettingsFromModal() {
+				const payload = collectSettingsPayload();
+
+				if (!payload.input_videos_dir || !payload.output_videos_dir) {
+					showToast("Input and output folders are required");
+					return;
+				}
+
+				if (
+					!Number.isFinite(payload.default_video_width) ||
+					payload.default_video_width <= 0 ||
+					!Number.isFinite(payload.default_video_height) ||
+					payload.default_video_height <= 0
+				) {
+					showToast("Default width and height must be positive numbers");
+					return;
+				}
+
+				saveSettingsBtn.disabled = true;
+				saveSettingsBtn.textContent = "Saving...";
+				try {
+					const res = await fetch("/api/settings", {
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(payload),
+					});
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to save settings");
+					}
+
+					await initOrientationPicker();
+					await initVoicePicker();
+					showToast("Settings saved");
+
+					const modal = bootstrap.Modal.getInstance(settingsModalEl);
+					if (modal) modal.hide();
+				} catch (err) {
+					showToast(err?.message || "Failed to save settings");
+				} finally {
+					saveSettingsBtn.disabled = false;
+					saveSettingsBtn.textContent = "Save Settings";
+				}
 			}
 
 			async function fetchLanguages() {
@@ -893,6 +1502,10 @@
 					}
 					if (config.defaultHeight) {
 						customHeightInput.value = String(config.defaultHeight);
+					}
+					if (includeSubtitlesInput) {
+						includeSubtitlesInput.checked =
+							config.subtitlesEnabledByDefault !== false;
 					}
 				} catch (_err) {
 					orientationSelect.value = "portrait";
@@ -950,6 +1563,15 @@
 				"change",
 				updateOrientationInputsVisibility,
 			);
+			openSettingsBtn.addEventListener("click", loadSettingsIntoModal);
+			saveSettingsBtn.addEventListener("click", saveSettingsFromModal);
+			uploadVideosBtn.addEventListener("click", uploadBackgroundVideos);
+
+			document.querySelectorAll(".copy-tag-btn").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					copyToClipboard(btn.dataset.tags || "");
+				});
+			});
 
 			async function generateTTS(text) {
 				if (!speaker_id) {
@@ -1024,19 +1646,142 @@
 				});
 			}
 
+			async function fetchUploadedVideos() {
+				try {
+					const res = await fetch("/api/videos/list");
+					if (!res.ok) {
+						console.error("Failed to fetch uploaded videos");
+						return [];
+					}
+					const data = await res.json();
+					return Array.isArray(data?.videos) ? data.videos : [];
+				} catch (err) {
+					console.error("Error fetching uploaded videos:", err);
+					return [];
+				}
+			}
+
+			async function refreshUploadedVideosList() {
+				const videos = await fetchUploadedVideos();
+				const grid = document.getElementById("uploadedVideosGrid");
+
+				if (!grid) return;
+
+				if (videos.length === 0) {
+					grid.innerHTML = `
+						<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #5c6b70;">
+							<p style="margin: 0; font-size: 0.92rem;">No uploaded videos yet. Upload videos in Settings.</p>
+						</div>
+					`;
+					return;
+				}
+
+				grid.innerHTML = videos
+					.map((video) => {
+						const sizeInMB = (video.size / 1024 / 1024).toFixed(2);
+						const createdDate = new Date(video.createdAt).toLocaleDateString();
+						return `
+							<article class="preview-card">
+								<div class="preview-frame" style="background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);">
+									<div style="font-size: 0.8rem; color: #00897b;">Video Ready</div>
+								</div>
+								<div class="preview-meta">${video.filename}</div>
+								<div style="font-size: 0.8rem; color: #5c6b70; margin-top: 0.35rem;">
+									${sizeInMB}MB • ${createdDate}
+								</div>
+								<button class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="deleteUploadedVideo('${video.filename.replace(/'/g, "\\'")}')">
+									Delete
+								</button>
+							</article>
+						`;
+					})
+					.join("");
+			}
+
+			async function deleteUploadedVideo(filename) {
+				if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
+
+				try {
+					const res = await fetch(
+						`/api/videos/${encodeURIComponent(filename)}`,
+						{
+							method: "DELETE",
+						},
+					);
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to delete video");
+					}
+
+					showToast(`Deleted ${filename}`);
+					await refreshUploadedVideosList();
+				} catch (err) {
+					showToast(err?.message || "Failed to delete video");
+				}
+			}
+
+			async function uploadBackgroundVideos() {
+				const files = Array.from(uploadVideosInput.files || []);
+				if (files.length === 0) {
+					showToast("Choose at least one video file to upload");
+					return;
+				}
+
+				uploadVideosBtn.disabled = true;
+				uploadVideosBtn.textContent = "Uploading...";
+				uploadVideosStatus.textContent = `Uploading ${files.length} file(s)...`;
+
+				try {
+					const formData = new FormData();
+					files.forEach((file) => formData.append("videos", file));
+
+					const res = await fetch("/api/videos/upload", {
+						method: "POST",
+						body: formData,
+					});
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to upload videos");
+					}
+
+					const data = await res.json();
+					const uploadedCount = Array.isArray(data?.jobs)
+						? data.jobs.length
+						: files.length;
+					const failedCount = Array.isArray(data?.jobs)
+						? data.jobs.filter((j) => j.status === "corrupted").length
+						: 0;
+
+					let statusMessage = `Uploaded ${uploadedCount} file(s) to ${data?.upload_dir || settingsInputVideosDir.value || "/mnt/videos"}.`;
+					if (failedCount > 0) {
+						statusMessage += ` ${failedCount} file(s) failed verification.`;
+					}
+
+					uploadVideosStatus.textContent = statusMessage;
+					uploadVideosInput.value = "";
+					showToast(
+						`Uploaded ${uploadedCount} background video(s)` +
+							(failedCount > 0 ? ` (${failedCount} failed)` : ""),
+					);
+
+					// Refresh the uploaded videos list
+					await refreshUploadedVideosList();
+
+					// Log job details if needed
+					if (Array.isArray(data?.jobs)) {
+						console.log("Upload jobs:", data.jobs);
+					}
+				} catch (err) {
+					uploadVideosStatus.textContent =
+						err?.message || "Upload failed. Try again.";
+					showToast(err?.message || "Failed to upload videos");
+				} finally {
+					uploadVideosBtn.disabled = false;
+					uploadVideosBtn.textContent = "Upload Videos";
+				}
+			}
+
 			initVoicePicker();
 			initOrientationPicker();
+			refreshUploadedVideosList();
 		</script>
-
-		<footer class="border-top text-center py-3">
-			Made with <span style="color: red">&hearts;</span> by
-			<a
-				href="https://cirociampaglia.it"
-				class="text-black"
-				target="_blank"
-				rel="noopener noreferrer"
-				>Ciro Ciampaglia</a
-			>
-		</footer>
 	</body>
 </html>

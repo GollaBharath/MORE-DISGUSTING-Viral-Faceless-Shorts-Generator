@@ -38,7 +38,8 @@ for name in files:
 print("XTTS files ready")
 PY
 
-python3 TTS/server/server.py \
+# Run the TTS server with threading support for concurrent requests
+python3 /wsgi.py \
     --model_path "$MODEL_DIR" \
   --config_path "$MODEL_DIR/config.json" \
   --speakers_file_path "$MODEL_DIR/speakers_xtts.pth"

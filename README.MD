@@ -19,6 +19,8 @@ Your support helps keep this project alive and free for the community. Thank you
 - Forced alignment with Aeneas
 - Video composition with FFmpeg
 - Selectable output orientation (portrait, landscape, square, original, custom)
+- Persistent SQLite-backed app settings (`/api/settings`)
+- Configurable generated video save folder (server-side)
 - One-click web interface
 
 ## Pipeline Overview
@@ -71,6 +73,49 @@ docker-compose up --build
 ```
 
 Access the web interface at [http://localhost](http://localhost) to generate your first viral Short.
+
+## Runtime Settings (SQLite)
+
+The `trendscraper` service now persists configuration in SQLite at `/app/data/settings.db` (mounted from `./data`).
+
+Use the API to inspect/update settings at runtime:
+
+```bash
+curl -s http://localhost:8080/api/settings
+```
+
+```bash
+curl -X PUT http://localhost:8080/api/settings \
+   -H "Content-Type: application/json" \
+   -d '{
+      "output_videos_dir": "/mnt/videos/generated",
+      "input_videos_dir": "/mnt/videos",
+      "default_video_orientation": "portrait",
+      "subtitles_enabled_by_default": true
+   }'
+```
+
+Important notes:
+
+- Generated videos are still streamed back to the browser for immediate download.
+- A server-side copy is now also saved into `output_videos_dir`.
+- Existing env vars remain as first-boot fallbacks.
+
+## Upload Background Videos
+
+You can upload background clips from the web UI:
+
+- Open `Settings`
+- Set `Input Videos Folder` to `/mnt/videos`
+- Use `Upload Background Videos To Current Input Folder`
+
+API endpoint used by UI:
+
+```bash
+curl -X POST http://localhost:8080/api/videos/upload \
+   -F "videos=@/absolute/path/to/video1.mp4" \
+   -F "videos=@/absolute/path/to/video2.mov"
+```
 
 ## Requirements
 

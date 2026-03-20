@@ -11,6 +11,8 @@
 	"license": "ISC",
 	"dependencies": {
 		"express": "^5.1.0",
+		"multer": "^2.0.2",
+		"undici": "^7.16.0",
 		"uuid": "^11.1.0"
 	},
 	"type": "module"
