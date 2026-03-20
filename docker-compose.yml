@@ -4,20 +4,31 @@ services:
       context: ./trendscraper
     environment:
       - GEMINI_API_KEY
+      - OPENROUTER_API_KEY
+      - OPENROUTER_MODEL
       - LOCALE
       - COQUI_SPEAKER_ID
+      - COQUI_LANGUAGE_ID
+      - TTS_UPSTREAM_TIMEOUT_MS
+      - DEFAULT_VIDEO_ORIENTATION
+      - DEFAULT_VIDEO_WIDTH
+      - DEFAULT_VIDEO_HEIGHT
     volumes:
       - ./videos:/mnt/videos
   coqui:
     build:
       context: ./coqui
+    environment:
+      - COQUI_TOS_AGREED=1
+    volumes:
+      - coqui_models:/root/.local/share/tts
   speechalign:
     build:
       context: ./speechalign
   nginx:
     image: nginx:latest
     ports:
-      - "80:80"
+      - "${WEB_PORT:-8080}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/html:/usr/share/nginx/html:ro
@@ -25,3 +36,6 @@ services:
       - trendscraper
       - coqui
       - speechalign
+
+volumes:
+  coqui_models:

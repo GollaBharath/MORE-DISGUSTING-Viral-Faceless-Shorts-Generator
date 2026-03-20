@@ -2,4 +2,7 @@ FROM ghcr.io/coqui-ai/tts-cpu
 
 EXPOSE 5002
 
-ENTRYPOINT [ "bash", "-c", "python3 TTS/server/server.py --model_name tts_models/en/vctk/vits" ]
+COPY start_xtts_server.sh /start_xtts_server.sh
+RUN chmod +x /start_xtts_server.sh
+
+ENTRYPOINT ["/start_xtts_server.sh"]

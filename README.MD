@@ -1,6 +1,6 @@
-# 🧠 Viral Faceless Shorts Generator
+# Viral Faceless Shorts Generator
 
-An automated pipeline to generate **faceless YouTube Shorts** based on **Google Trends**. This system leverages AI-generated scripts, TTS voice, subtitle alignment, and FFmpeg video composition, all wrapped in a fully containerized architecture.
+An automated pipeline to generate faceless YouTube Shorts from a custom Gemini prompt. This system leverages AI-generated scripts, manual script approval, TTS voice, subtitle alignment, and FFmpeg video composition, all wrapped in a fully containerized architecture.
 
 ## ❤️ Support This Project
 
@@ -11,44 +11,48 @@ If you find it useful, please consider **supporting my work via GitHub Sponsors*
 
 Your support helps keep this project alive and free for the community. Thank you! 🙌
 
-## 🚀 Features
+## Features
 
-- 🔥 **Trending Topic Detection** via Google Trends
-- 🤖 **Script Generation** using Google Gemini API
-- 🗣️ **Voice Synthesis** with Coqui TTS
-- ⏱️ **Forced Alignment** of subtitles using Aeneas
-- 🎬 **Video Composition** with FFmpeg
-- 🖥️ **One-Click Web Interface**
+- Prompt-based script generation with Google Gemini
+- Manual script approval and editing before rendering
+- Voice synthesis with Coqui TTS
+- Forced alignment with Aeneas
+- Video composition with FFmpeg
+- Selectable output orientation (portrait, landscape, square, original, custom)
+- One-click web interface
 
-## 🧩 Pipeline Overview
+## Pipeline Overview
 
-1. **Scrape Google Trends**  
-   The `trendscraper` service uses Puppeteer to extract trending topics.
+1. **Write Prompt**  
+   Enter a custom prompt in the web UI to describe the video idea.
 
 2. **Generate Script (Gemini)**  
-   It sends the trend to Gemini to generate a short, engaging script.
+   The `trendscraper` service asks Gemini to produce `title`, `description`, and `body`.
 
-3. **Text-to-Speech (Coqui)**  
-   The script is converted to speech using Coqui TTS.
+3. **Approve Script**  
+   Review and optionally edit the script. Rendering starts only after approval.
 
-4. **Subtitle Alignment (Aeneas)**  
+4. **Text-to-Speech (Coqui)**  
+   The approved script is converted to speech using Coqui TTS.
+
+5. **Subtitle Alignment (Aeneas)**  
    `speechalign` aligns the generated audio with the script to produce timed subtitles.
 
-5. **Video Assembly (FFmpeg)**  
+6. **Video Assembly (FFmpeg)**  
    The system merges:
    - A background video from `/videos` (named `default_*.mp4`)
    - The voiceover audio
    - Subtitles  
-   to create the final faceless short.
+     to create the final faceless short.
 
-6. **Web Trigger Interface**  
+7. **Web Trigger Interface**  
    Access a minimal frontend on port `80` to trigger everything with one click.
 
-## 📦 Folder Structure
+## Folder Structure
 
 ```
 viral_faceless/
-├── trendscraper/      # Scraper + Gemini + FFmpeg composition API
+├── trendscraper/      # Gemini + FFmpeg composition API
 ├── coqui/             # Coqui TTS container
 ├── speechalign/       # Forced alignment via Aeneas
 ├── nginx/             # Web interface + reverse proxy
@@ -58,7 +62,7 @@ viral_faceless/
 
 > **Note:** Background clips must be placed in `/videos` and named like `default_something.mp4`.
 
-## 🐳 Usage
+## Usage
 
 Rename the file `example.env` in `.env` and replace the placeholder Gemini API key with the one you generated from Google AI Studio, then start the pipeline with:
 
@@ -68,7 +72,7 @@ docker-compose up --build
 
 Access the web interface at [http://localhost](http://localhost) to generate your first viral Short.
 
-## 🧠 Requirements
+## Requirements
 
 - Docker + Docker Compose
 - Google Gemini API Key

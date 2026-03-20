@@ -1,493 +1,1042 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Viral Faceless Shorts Generator</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link
+			href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+			rel="stylesheet" />
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+		<style>
+			body {
+				font-family: sans-serif;
+			}
 
-<head>
-  <meta charset="UTF-8" />
-  <title>Viral Faceless Shorts Generator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-    }
+			.top-bar {
+				padding: 1rem;
+				background: #f8f9fa;
+				border-bottom: 1px solid #dee2e6;
+			}
 
-    .top-bar {
-      padding: 1rem;
-      background: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
-    }
+			#card-grid {
+				display: flex;
+				flex: 1;
+				flex-wrap: wrap;
+				gap: 1rem;
+				padding: 1rem;
+				justify-content: center;
+			}
 
-    #card-grid {
-      display: flex;
-      flex: 1;
-      flex-wrap: wrap;
-      gap: 1rem;
-      padding: 1rem;
-      justify-content: center;
-    }
+			#card-grid:empty::before {
+				content: "No videos found.\ATry generating a script from a prompt.";
+				white-space: pre-line;
+				display: block;
+				text-align: center;
+				color: #6c757d;
+				font-size: 1.2rem;
+				margin-top: 3rem;
+			}
 
-    #card-grid:empty::before {
-      content: "No videos found.\ATry running a workflow to generate content.";
-      white-space: pre-line;
-      display: block;
-      text-align: center;
-      color: #6c757d;
-      font-size: 1.2rem;
-      margin-top: 3rem;
-    }
+			.card-tile {
+				width: 360px;
+				border: 1px solid #ddd;
+				border-radius: 6px;
+				padding: 1rem;
+				background-color: #fff;
+				position: relative;
+			}
 
-    .card-tile {
-      width: 300px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 1rem;
-      background-color: #fff;
-      position: relative;
-    }
+			.card-tile h6 {
+				font-weight: bold;
+				cursor: pointer;
+			}
 
-    .card-tile h6 {
-      font-weight: bold;
-      cursor: pointer;
-      height: 3hl;
-      overflow: hidden;
-    }
+			.card-tile p {
+				font-size: 0.9rem;
+				cursor: pointer;
+			}
 
-    .card-tile p {
-      font-size: 0.9rem;
-      cursor: pointer;
-      height: 5hl;
-      overflow: hidden;
-    }
+			.script-editor {
+				min-height: 180px;
+				font-size: 0.88rem;
+			}
 
-    .progress {
-      height: 8px;
-      margin-top: 10px;
-    }
+			.progress {
+				height: 8px;
+				margin-top: 10px;
+			}
 
-    .toast-container {
-      position: fixed;
-      bottom: 1rem;
-      right: 1rem;
-      z-index: 9999;
-    }
-  </style>
-</head>
+			.toast-container {
+				position: fixed;
+				bottom: 1rem;
+				right: 1rem;
+				z-index: 9999;
+			}
+		</style>
+	</head>
 
-<body class="d-flex flex-column min-vh-100">
+	<body class="d-flex flex-column min-vh-100">
+		<div
+			class="top-bar px-3 py-2 border-bottom bg-light d-flex flex-wrap justify-content-between align-items-center">
+			<h5 class="mb-2 mb-md-0 fw-semibold">Viral Faceless Shorts Generator</h5>
+			<div class="d-flex gap-2 align-items-center flex-wrap">
+				<select
+					id="languageSelect"
+					class="form-select form-select-sm"
+					style="min-width: 110px"
+					disabled>
+					<option>Lang...</option>
+				</select>
+				<select
+					id="voiceSelect"
+					class="form-select form-select-sm"
+					style="min-width: 170px"
+					disabled>
+					<option>Loading voices...</option>
+				</select>
+				<button
+					class="btn btn-outline-secondary btn-sm"
+					id="previewVoiceBtn"
+					disabled>
+					Preview Voice
+				</button>
+				<button
+					class="btn btn-primary"
+					data-bs-toggle="modal"
+					data-bs-target="#promptWorkflowModal">
+					Prompt Workflow
+				</button>
+			</div>
+		</div>
 
-  <div class="top-bar px-3 py-2 border-bottom bg-light d-flex flex-wrap justify-content-between align-items-center">
-    <h5 class="mb-2 mb-md-0 fw-semibold">Viral Faceless Shorts Generator</h5>
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#customTopicModal">
-        Custom Topic Workflow
-      </button>
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#workflowModal">
-        Trend-Based Workflow
-      </button>
-    </div>
-  </div>
+		<div
+			class="modal fade"
+			id="promptWorkflowModal"
+			tabindex="-1"
+			aria-labelledby="promptWorkflowModalLabel"
+			aria-hidden="true">
+			<div class="modal-dialog modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="promptWorkflowModalLabel">
+							Generate Script From Prompt
+						</h5>
+						<button
+							type="button"
+							class="btn-close"
+							data-bs-dismiss="modal"
+							aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label for="scriptPrompt" class="form-label"
+								>Prompt For Gemini</label
+							>
+							<textarea
+								class="form-control"
+								id="scriptPrompt"
+								rows="6"
+								placeholder="Example: Create a fast-paced script about 5 AI tools that save time for creators, with a strong hook and CTA."></textarea>
+						</div>
+						<div class="row g-2">
+							<div class="col-md-4">
+								<label for="orientationSelect" class="form-label"
+									>Orientation</label
+								>
+								<select id="orientationSelect" class="form-select">
+									<option value="portrait">Portrait (9:16)</option>
+									<option value="landscape">Landscape (16:9)</option>
+									<option value="square">Square (1:1)</option>
+									<option value="original">Original (source video)</option>
+									<option value="custom">Custom</option>
+								</select>
+							</div>
+							<div class="col-md-4 d-none" id="customWidthGroup">
+								<label for="customWidth" class="form-label">Custom Width</label>
+								<input
+									id="customWidth"
+									type="number"
+									min="1"
+									class="form-control"
+									placeholder="e.g. 1080" />
+							</div>
+							<div class="col-md-4 d-none" id="customHeightGroup">
+								<label for="customHeight" class="form-label"
+									>Custom Height</label
+								>
+								<input
+									id="customHeight"
+									type="number"
+									min="1"
+									class="form-control"
+									placeholder="e.g. 1920" />
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-secondary" data-bs-dismiss="modal">
+							Close
+						</button>
+						<button
+							class="btn btn-primary"
+							onclick="startPromptWorkflow()"
+							data-bs-dismiss="modal">
+							Generate Script
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
 
-  <!-- Settings Modal -->
-  <div class="modal fade" id="workflowModal" tabindex="-1" aria-labelledby="workflowModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="workflowModalLabel">Workflow Settings</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label for="geo" class="form-label">Country</label>
-              <select id="geo" class="form-control">
-                <option value="" disabled selected>Select country</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="hours" class="form-label">Time Range</label>
-              <select id="hours" class="form-control">
-                <option value="" selected disabled>Select time range</option>
-                <option value="4">Last 4 hours</option>
-                <option value="24">Last 24 hours</option>
-                <option value="48">Last 48 hours</option>
-                <option value="168">Last 7 days</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="category" class="form-label">Category</label>
-              <select id="category" class="form-control">
-                <option value="">All categories</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="status" class="form-label">Trend Status</label>
-              <select id="status" class="form-control">
-                <option value="">All trends</option>
-                <option value="active">Only active trends</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="sort" class="form-label">Sort By</label>
-              <select id="sort" class="form-control">
-                <option value="">Sort by relevance</option>
-                <option value="title">Sort by title</option>
-                <option value="search-volume">Sort by search volume</option>
-                <option value="recency">Sort by recency</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="maxVideos" class="form-label">Max Videos</label>
-              <input type="number" id="maxVideos" class="form-control" min="1" placeholder="Maximum number of videos"
-                title="Set the maximum number of videos to process, or leave empty for no limit" />
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button class="btn btn-primary" onclick="executeWorkflow()" data-bs-dismiss="modal">Execute Workflow</button>
-        </div>
-      </div>
-    </div>
-  </div>
+		<div id="card-grid"></div>
 
-  <!-- Custom Topic Modal -->
-  <div class="modal fade" id="customTopicModal" tabindex="-1" aria-labelledby="customTopicModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="customTopicModalLabel">Custom Topic Workflow</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="customTopic" class="form-label">Topic Keyword</label>
-            <input type="text" class="form-control" id="customTopic" placeholder="Enter a topic keyword" required>
-          </div>
-          <div class="mb-3">
-            <label for="customDescription" class="form-label">Expected Video Description</label>
-            <textarea class="form-control" id="customDescription" rows="3"
-              placeholder="Describe what you expect to see in the final video" required></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button class="btn btn-primary" onclick="generateVideo()" data-bs-dismiss="modal">Generate Video</button>
-        </div>
-      </div>
-    </div>
-  </div>
+		<div class="toast-container" id="toast-container"></div>
 
-  <!-- Cards Grid -->
-  <div id="card-grid"></div>
+		<script>
+			const cardGrid = document.getElementById("card-grid");
+			const toastContainer = document.getElementById("toast-container");
+			const languageSelect = document.getElementById("languageSelect");
+			const voiceSelect = document.getElementById("voiceSelect");
+			const previewVoiceBtn = document.getElementById("previewVoiceBtn");
+			const orientationSelect = document.getElementById("orientationSelect");
+			const customWidthInput = document.getElementById("customWidth");
+			const customHeightInput = document.getElementById("customHeight");
+			const customWidthGroup = document.getElementById("customWidthGroup");
+			const customHeightGroup = document.getElementById("customHeightGroup");
+			const PREVIEW_TEXT =
+				"This is a sample voice preview for your next faceless short video.";
 
-  <!-- Toast Container -->
-  <div class="toast-container" id="toast-container"></div>
+			let ttsQueue = [],
+				alignQueue = [],
+				burnQueue = [];
+			let ttsLock = false,
+				alignLock = false,
+				burnLock = false;
+			let speaker_id = undefined;
+			let language_id = "en";
+			let isPreviewPlaying = false;
+			let previewAudioUrl = null;
+			const previewAudio = new Audio();
 
-  <!-- Scripts -->
-  <script>
-    const cardGrid = document.getElementById("card-grid");
-    const toastContainer = document.getElementById("toast-container");
-
-    let generateQueue = [], ttsQueue = [], alignQueue = [], burnQueue = [];
-    let generateLock = false, ttsLock = false, alignLock = false, burnLock = false;
-
-    function showToast(message) {
-      const toast = document.createElement("div");
-      toast.className = "toast align-items-center text-white bg-primary border-0 show";
-      toast.role = "alert";
-      toast.innerHTML = `
+			function showToast(message) {
+				const toast = document.createElement("div");
+				toast.className =
+					"toast align-items-center text-white bg-primary border-0 show";
+				toast.role = "alert";
+				toast.innerHTML = `
         <div class="d-flex">
           <div class="toast-body">${message}</div>
           <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>`;
-      toastContainer.appendChild(toast);
-      setTimeout(() => toast.remove(), 4000);
-    }
+				toastContainer.appendChild(toast);
+				setTimeout(() => toast.remove(), 4000);
+			}
 
-    function updateCard(id, { title, description, progress, label, downloadUrl }) {
-      const card = document.getElementById(id);
-      if (!card) return;
+			function updateCard(
+				id,
+				{ title, description, progress, label, downloadUrl },
+			) {
+				const card = document.getElementById(id);
+				if (!card) return;
 
-      if (title) {
-        const titleEl = card.querySelector("h6");
-        titleEl.textContent = title;
-        titleEl.onclick = () => copyToClipboard(title);
-      }
+				if (title) {
+					const titleEl = card.querySelector("h6");
+					titleEl.textContent = title;
+					titleEl.onclick = () => copyToClipboard(title);
+				}
 
-      if (description !== undefined) {
-        const descEl = card.querySelector("p");
-        descEl.textContent = description;
-        descEl.onclick = () => copyToClipboard(description);
-      }
+				if (description !== undefined) {
+					const descEl = card.querySelector("p");
+					descEl.textContent = description;
+					descEl.onclick = () => copyToClipboard(description);
+				}
 
-      if (progress !== undefined) {
-        card.querySelector(".progress-bar").style.width = progress + "%";
-      }
+				if (progress !== undefined) {
+					card.querySelector(".progress-bar").style.width = progress + "%";
+				}
 
-      if (label) {
-        card.querySelector(".status-label").textContent = label;
-      }
+				if (label) {
+					card.querySelector(".status-label").textContent = label;
+				}
 
-      if (downloadUrl) {
-        const btn = document.createElement("a");
-        btn.href = downloadUrl;
-        btn.download = `${title || 'video'}.mp4`;
-        btn.className = "btn btn-sm btn-outline-primary mt-2 w-100";
-        btn.textContent = "Download Video";
-        card.appendChild(btn);
-      }
-    }
+				if (downloadUrl) {
+					if (card.querySelector(".download-btn")) return;
+					const btn = document.createElement("a");
+					btn.href = downloadUrl;
+					btn.download = `${title || "video"}.mp4`;
+					btn.className =
+						"btn btn-sm btn-outline-primary mt-2 w-100 download-btn";
+					btn.textContent = "Download Video";
+					card.appendChild(btn);
+				}
+			}
 
-    function createCard(id, trendTitle) {
-      const card = document.createElement("div");
-      card.id = id;
-      card.className = "card-tile";
-      card.innerHTML = `
-        <h6>${trendTitle}</h6>
+			function createCard(id, promptText) {
+				const card = document.createElement("div");
+				card.id = id;
+				card.className = "card-tile";
+				card.innerHTML = `
+        <h6>Prompt Workflow</h6>
         <p></p>
+        <div class="mb-2 text-muted" style="font-size: 0.8rem;">Prompt: <span class="prompt-preview"></span></div>
+				<div class="mb-2 text-muted orientation-preview" style="font-size: 0.8rem;"></div>
+        <div class="script-container d-none">
+          <label class="form-label mb-1" style="font-size: 0.82rem;">Script (editable before approval)</label>
+          <textarea class="form-control script-editor mb-2"></textarea>
+          <button class="btn btn-success btn-sm w-100 approve-btn">Approve Script</button>
+        </div>
         <div class="progress">
           <div class="progress-bar" style="width: 5%"></div>
         </div>
         <div class="status-label mt-1 text-muted" style="font-size: 0.8rem;">Queued...</div>
       `;
-      cardGrid.appendChild(card);
-    }
 
-    async function withRetry(taskFn, onRetry) {
-      while (true) {
-        try {
-          return await taskFn();
-        } catch (err) {
-          if (onRetry) onRetry(err);
-          showToast("Retrying after error...");
-          await new Promise(res => setTimeout(res, 5000));
-        }
-      }
-    }
+				card.querySelector(".prompt-preview").textContent = promptText;
+				cardGrid.appendChild(card);
+			}
 
-    function generateId() {
-      const array = new Uint8Array(10);
-      window.crypto.getRandomValues(array);
-      return Array.from(array, byte => ('0' + byte.toString(16)).slice(-2)).join('');
-    }
+			function formatOrientationText(settings) {
+				if (!settings || !settings.orientation) return "Orientation: portrait";
+				if (settings.orientation === "custom") {
+					return `Orientation: custom (${settings.width}x${settings.height})`;
+				}
+				return `Orientation: ${settings.orientation}`;
+			}
 
-    async function executeWorkflow() {
-      const geo = document.getElementById("geo").value;
-      const hours = document.getElementById("hours").value;
-      const status = document.getElementById("status").value;
-      const sort = document.getElementById("sort").value;
-      const category = document.getElementById("category").value;
-      const maxVideos = parseInt(document.getElementById("maxVideos").value) || Infinity;
+			function clearRetryButton(id) {
+				const card = document.getElementById(id);
+				if (!card) return;
+				const btn = card.querySelector(".retry-btn");
+				if (btn) btn.remove();
+			}
 
-      let trends = await withRetry(() =>
-        fetch("/api/scrape", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ geo, hours, status, sort, category })
-        }).then(res => res.json())
-      );
+			function setRetryButton(id, text, onRetry) {
+				const card = document.getElementById(id);
+				if (!card) return;
+				clearRetryButton(id);
 
-      if (!Array.isArray(trends)) {
-        showToast("Error fetching trends");
-        return;
-      }
-      trends = trends.slice(0, maxVideos);
+				const btn = document.createElement("button");
+				btn.className = "btn btn-sm btn-outline-warning mt-2 w-100 retry-btn";
+				btn.textContent = text;
+				btn.onclick = async () => {
+					btn.disabled = true;
+					btn.textContent = "Retrying...";
+					await onRetry();
+				};
+				card.appendChild(btn);
+			}
 
-      trends.forEach(trend => {
-        const id = generateId();
-        createCard(id, trend.trend);
-        generateQueue.push({ id, trend });
-      });
+			function isRetryableError(err) {
+				if (!err || typeof err !== "object") return true;
+				if (err.status === 429) return true;
+				if (typeof err.status === "number") return err.status >= 500;
+				return true;
+			}
 
-      processGenerate(); processTTS(); processAlign(); processBurn();
-    }
+			async function withRetry(taskFn, onRetry, options = {}) {
+				const maxRetries = options.maxRetries ?? 3;
+				const baseDelayMs = options.baseDelayMs ?? 5000;
+				let attempts = 0;
 
-    async function generateVideo() {
-      const topic = document.getElementById("customTopic").value;
-      const description = document.getElementById("customDescription").value;
+				while (true) {
+					try {
+						return await taskFn();
+					} catch (err) {
+						const retryable = isRetryableError(err);
+						if (!retryable) {
+							throw err;
+						}
 
-      if (!topic || !description) {
-        showToast("Please enter both topic and description");
-        return;
-      }
+						if (attempts >= maxRetries) {
+							throw err;
+						}
 
-      const id = await generateId();
-      createCard(id, topic);
-      updateCard(id, { description, progress: 5, label: "Generating content..." });
+						attempts += 1;
+						const delayMs = err?.retryAfterMs || baseDelayMs * attempts;
+						if (onRetry) onRetry(err, attempts, maxRetries, delayMs);
 
-      generateQueue.push({ id, trend: { trend: topic, body: description } });
-      processGenerate(); processTTS(); processAlign(); processBurn();
-    }
+						if (err?.status === 429) {
+							const seconds = Math.ceil(delayMs / 1000);
+							showToast(
+								`Rate limited by Gemini. Retrying in ${seconds}s... (${attempts}/${maxRetries})`,
+							);
+						} else {
+							showToast(
+								`Temporary error. Retrying... (${attempts}/${maxRetries})`,
+							);
+						}
 
-    async function processGenerate() {
-      if (generateLock || generateQueue.length === 0) return;
-      generateLock = true;
+						await new Promise((res) => setTimeout(res, delayMs));
+					}
+				}
+			}
 
-      const { id, trend } = generateQueue.shift();
-      updateCard(id, { progress: 10, label: "Generating content..." });
+			function generateId() {
+				const array = new Uint8Array(10);
+				window.crypto.getRandomValues(array);
+				return Array.from(array, (byte) =>
+					("0" + byte.toString(16)).slice(-2),
+				).join("");
+			}
 
-      const generated = await withRetry(() => generateContent(trend), () => updateCard(id, { label: "Retrying generation..." }));
-      updateCard(id, {
-        title: generated.title,
-        description: generated.description,
-        progress: 30,
-        label: "Content generated"
-      });
+			function updateOrientationInputsVisibility() {
+				const isCustom = orientationSelect.value === "custom";
+				customWidthGroup.classList.toggle("d-none", !isCustom);
+				customHeightGroup.classList.toggle("d-none", !isCustom);
+			}
 
-      ttsQueue.push({ id, trend, generated });
-      generateLock = false;
-      processGenerate();
-      processTTS();
-    }
+			function getSelectedOrientationSettings() {
+				const orientation = orientationSelect.value || "portrait";
+				if (orientation !== "custom") {
+					return { orientation };
+				}
 
-    async function processTTS() {
-      if (ttsLock || ttsQueue.length === 0) return;
-      ttsLock = true;
+				const width = Number.parseInt(customWidthInput.value, 10);
+				const height = Number.parseInt(customHeightInput.value, 10);
+				if (!Number.isFinite(width) || width <= 0) {
+					throw new Error("Custom width must be a positive number");
+				}
+				if (!Number.isFinite(height) || height <= 0) {
+					throw new Error("Custom height must be a positive number");
+				}
 
-      const { id, generated } = ttsQueue.shift();
-      updateCard(id, { progress: 50, label: "Generating TTS..." });
+				return { orientation, width, height };
+			}
 
-      const ttsAudio = await withRetry(() => generateTTS(generated.body), () => updateCard(id, { label: "Retrying TTS..." }));
-      alignQueue.push({ id, generated, ttsAudio });
-      updateCard(id, { progress: 60, label: "TTS generated" });
+			async function runGenerationForCard(id, prompt, orientationSettings) {
+				clearRetryButton(id);
+				updateCard(id, {
+					progress: 15,
+					label: "Generating script with Gemini...",
+				});
 
-      ttsLock = false;
-      processTTS();
-      processAlign();
-    }
+				let generated;
+				try {
+					generated = await withRetry(
+						() => generateContent(prompt),
+						(err, attempt, maxRetries, delayMs) => {
+							if (err?.status === 429) {
+								updateCard(id, {
+									label: `Rate limited. Retrying in ${Math.ceil(delayMs / 1000)}s... (${attempt}/${maxRetries})`,
+								});
+							} else {
+								updateCard(id, {
+									label: `Retrying generation... (${attempt}/${maxRetries})`,
+								});
+							}
+						},
+						{ maxRetries: 4, baseDelayMs: 5000 },
+					);
+				} catch (err) {
+					const message = err?.message || "Failed to generate script";
+					showToast(message);
+					updateCard(id, { label: "Generation failed" });
+					setRetryButton(id, "Retry Generation", async () => {
+						await runGenerationForCard(id, prompt, orientationSettings);
+					});
+					return;
+				}
 
-    async function processAlign() {
-      if (alignLock || alignQueue.length === 0) return;
-      alignLock = true;
+				if (!generated || !generated.body) {
+					showToast("Generation failed: invalid response");
+					updateCard(id, { label: "Generation failed" });
+					setRetryButton(id, "Retry Generation", async () => {
+						await runGenerationForCard(id, prompt, orientationSettings);
+					});
+					return;
+				}
 
-      const { id, generated, ttsAudio } = alignQueue.shift();
-      updateCard(id, { progress: 70, label: "Aligning subtitles..." });
+				clearRetryButton(id);
+				updateCard(id, {
+					title: generated.title || "Generated Script",
+					description: generated.description || "",
+					progress: 35,
+					label: "Script generated. Review and approve.",
+				});
 
-      const srt = await withRetry(() => alignSubtitles(generated.body, ttsAudio.base64), () => updateCard(id, { label: "Retrying alignment..." }));
-      burnQueue.push({ id, srt, ttsAudio, title: generated.title });
-      updateCard(id, { progress: 80, label: "Subtitles aligned" });
+				renderApprovalUI(id, generated, orientationSettings);
+			}
 
-      alignLock = false;
-      processAlign();
-      processBurn();
-    }
+			async function startPromptWorkflow() {
+				const prompt = document.getElementById("scriptPrompt").value.trim();
+				if (!prompt) {
+					showToast("Please enter a prompt");
+					return;
+				}
 
-    async function processBurn() {
-      if (burnLock || burnQueue.length === 0) return;
-      burnLock = true;
+				let orientationSettings;
+				try {
+					orientationSettings = getSelectedOrientationSettings();
+				} catch (err) {
+					showToast(err?.message || "Invalid orientation settings");
+					return;
+				}
 
-      const { id, srt, ttsAudio, title } = burnQueue.shift();
-      updateCard(id, { progress: 90, label: "Rendering video..." });
+				const id = generateId();
+				createCard(id, prompt);
+				const card = document.getElementById(id);
+				if (card) {
+					const orientationPreview = card.querySelector(".orientation-preview");
+					if (orientationPreview) {
+						orientationPreview.textContent =
+							formatOrientationText(orientationSettings);
+					}
+				}
+				await runGenerationForCard(id, prompt, orientationSettings);
+				document.getElementById("scriptPrompt").value = "";
+			}
 
-      const video = await withRetry(() => burnVideo(ttsAudio.base64, srt), () => updateCard(id, { label: "Retrying rendering..." }));
-      updateCard(id, { progress: 100, label: "Video ready", downloadUrl: video.url, title });
+			function renderApprovalUI(id, generated, orientationSettings) {
+				const card = document.getElementById(id);
+				if (!card) return;
 
-      burnLock = false;
-      processBurn();
-    }
+				const container = card.querySelector(".script-container");
+				const textarea = card.querySelector(".script-editor");
+				const approveBtn = card.querySelector(".approve-btn");
 
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => showToast("Copied to clipboard"));
-    }
+				container.classList.remove("d-none");
+				textarea.value = generated.body;
 
-    // -------------------
-    // API Helpers
-    // -------------------
+				approveBtn.onclick = () => {
+					const approvedBody = textarea.value.trim();
+					if (!approvedBody) {
+						showToast("Script cannot be empty");
+						return;
+					}
 
-    async function generateContent(trend) {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trend)
-      });
-      return await res.json();
-    }
+					approveBtn.disabled = true;
+					approveBtn.textContent = "Approved";
+					textarea.disabled = true;
 
-    let speaker_id = undefined;
+					const approved = {
+						title: generated.title || "Generated Script",
+						description: generated.description || "",
+						body: approvedBody,
+						...orientationSettings,
+					};
 
-    async function generateTTS(text) {
-      if (!speaker_id) {
-        const res = await fetch("/api/coquiSpeakerId");
-        const data = await res.json();
-        speaker_id = data.speakerId;
-      }
-      const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&speaker_id=${speaker_id}`);
-      const blob = await res.blob();
-      const base64 = await blobToBase64(blob);
-      return { base64 };
-    }
+					ttsQueue.push({ id, generated: approved });
+					clearRetryButton(id);
+					updateCard(id, {
+						progress: 45,
+						label: "Script approved. Generating TTS...",
+					});
 
-    async function alignSubtitles(text, audioBase64) {
-      const res = await fetch("/api/align", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, audio: audioBase64 })
-      });
-      const result = await res.json();
-      return result.srt;
-    }
+					processTTS();
+					processAlign();
+					processBurn();
+				};
+			}
 
-    async function burnVideo(audioBase64, srt) {
-      const res = await fetch("/api/burn", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audio: audioBase64, subtitles: srt })
-      });
-      const blob = await res.blob();
-      return { url: URL.createObjectURL(blob) };
-    }
+			async function processTTS() {
+				if (ttsLock || ttsQueue.length === 0) return;
+				ttsLock = true;
 
-    function blobToBase64(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
+				const { id, generated } = ttsQueue.shift();
+				clearRetryButton(id);
+				updateCard(id, { progress: 55, label: "Generating TTS..." });
 
-    window.addEventListener("DOMContentLoaded", async () => {
-      const populateOptions = async (file, select) => {
-        const data = await fetch(file).then(res => res.json());
-        Object.entries(data).forEach(([value, text]) => {
-          const option = document.createElement("option");
-          option.value = value;
-          option.textContent = text;
-          select.appendChild(option);
-        });
-      };
+				let ttsAudio;
+				try {
+					ttsAudio = await withRetry(
+						() => generateTTS(generated.body),
+						(_, attempt, maxRetries) =>
+							updateCard(id, {
+								label: `Retrying TTS... (${attempt}/${maxRetries})`,
+							}),
+						{ maxRetries: 3, baseDelayMs: 5000 },
+					);
+				} catch (err) {
+					showToast(err?.message || "TTS failed");
+					updateCard(id, { label: "TTS failed" });
+					setRetryButton(id, "Retry TTS", async () => {
+						ttsQueue.unshift({ id, generated });
+						updateCard(id, { progress: 50, label: "Retry queued for TTS..." });
+						processTTS();
+						processAlign();
+						processBurn();
+					});
+					ttsLock = false;
+					processTTS();
+					return;
+				}
 
-      populateOptions("/assets/countries.json", document.getElementById("geo"));
-      populateOptions("/assets/categories.json", document.getElementById("category"));
+				alignQueue.push({ id, generated, ttsAudio });
+				updateCard(id, { progress: 65, label: "TTS generated" });
 
+				ttsLock = false;
+				processTTS();
+				processAlign();
+			}
 
-      const geo = localStorage.getItem("geo");
-      const hours = localStorage.getItem("hours");
-      const status = localStorage.getItem("status");
-      const sort = localStorage.getItem("sort");
-      const category = localStorage.getItem("category");
+			async function processAlign() {
+				if (alignLock || alignQueue.length === 0) return;
+				alignLock = true;
 
-      if (geo) document.getElementById("geo").value = geo;
-      if (hours) document.getElementById("hours").value = hours;
-      if (status) document.getElementById("status").value = status;
-      if (sort) document.getElementById("sort").value = sort;
-      if (category) document.getElementById("category").value = category;
+				const { id, generated, ttsAudio } = alignQueue.shift();
+				clearRetryButton(id);
+				updateCard(id, { progress: 75, label: "Aligning subtitles..." });
 
-      // Save on change
-      document.getElementById("geo").addEventListener("input", e => localStorage.setItem("geo", e.target.value));
-      document.getElementById("hours").addEventListener("change", e => localStorage.setItem("hours", e.target.value));
-      document.getElementById("status").addEventListener("input", e => localStorage.setItem("status", e.target.value));
-      document.getElementById("sort").addEventListener("input", e => localStorage.setItem("sort", e.target.value));
-      document.getElementById("category").addEventListener("change", e => localStorage.setItem("category", e.target.value));
-    });
-  </script>
+				let srt;
+				try {
+					srt = await withRetry(
+						() => alignSubtitles(generated.body, ttsAudio.base64),
+						(_, attempt, maxRetries) =>
+							updateCard(id, {
+								label: `Retrying alignment... (${attempt}/${maxRetries})`,
+							}),
+						{ maxRetries: 3, baseDelayMs: 4000 },
+					);
+				} catch (err) {
+					showToast(err?.message || "Subtitle alignment failed");
+					updateCard(id, { label: "Alignment failed" });
+					setRetryButton(id, "Retry Alignment", async () => {
+						alignQueue.unshift({ id, generated, ttsAudio });
+						updateCard(id, {
+							progress: 70,
+							label: "Retry queued for alignment...",
+						});
+						processAlign();
+						processBurn();
+					});
+					alignLock = false;
+					processAlign();
+					return;
+				}
 
-  <footer class="border-top text-center py-3">
-    Made with <span style="color: red;">&hearts;</span> by <a href="https://cirociampaglia.it" class="text-black"
-      target="_blank" rel="noopener noreferrer">Ciro Ciampaglia</a>
-  </footer>
-</body>
+				burnQueue.push({
+					id,
+					srt,
+					ttsAudio,
+					title: generated.title,
+					orientation: generated.orientation,
+					width: generated.width,
+					height: generated.height,
+				});
+				updateCard(id, { progress: 85, label: "Subtitles aligned" });
 
+				alignLock = false;
+				processAlign();
+				processBurn();
+			}
+
+			async function processBurn() {
+				if (burnLock || burnQueue.length === 0) return;
+				burnLock = true;
+
+				const { id, srt, ttsAudio, title, orientation, width, height } =
+					burnQueue.shift();
+				clearRetryButton(id);
+				updateCard(id, { progress: 92, label: "Rendering video..." });
+
+				let video;
+				try {
+					video = await withRetry(
+						() => burnVideo(ttsAudio.base64, srt, orientation, width, height),
+						(_, attempt, maxRetries) =>
+							updateCard(id, {
+								label: `Retrying rendering... (${attempt}/${maxRetries})`,
+							}),
+						{ maxRetries: 2, baseDelayMs: 6000 },
+					);
+				} catch (err) {
+					showToast(err?.message || "Video rendering failed");
+					updateCard(id, { label: "Rendering failed" });
+					setRetryButton(id, "Retry Rendering", async () => {
+						burnQueue.unshift({
+							id,
+							srt,
+							ttsAudio,
+							title,
+							orientation,
+							width,
+							height,
+						});
+						updateCard(id, {
+							progress: 90,
+							label: "Retry queued for rendering...",
+						});
+						processBurn();
+					});
+					burnLock = false;
+					processBurn();
+					return;
+				}
+
+				updateCard(id, {
+					progress: 100,
+					label: "Video ready",
+					downloadUrl: video.url,
+					title,
+				});
+				clearRetryButton(id);
+
+				burnLock = false;
+				processBurn();
+			}
+
+			function copyToClipboard(text) {
+				navigator.clipboard
+					.writeText(text)
+					.then(() => showToast("Copied to clipboard"));
+			}
+
+			async function buildHttpError(res, fallbackMessage) {
+				let message = fallbackMessage;
+				const contentType = res.headers.get("content-type") || "";
+
+				try {
+					if (contentType.includes("application/json")) {
+						const data = await res.json();
+						message =
+							data?.error || data?.details || data?.message || fallbackMessage;
+					} else {
+						const text = await res.text();
+						if (text && text.trim()) {
+							message = text.slice(0, 300);
+						}
+					}
+				} catch (_) {
+					// Keep fallback message if response body cannot be parsed.
+				}
+
+				const err = new Error(message);
+				err.status = res.status;
+				return err;
+			}
+
+			async function generateContent(prompt) {
+				const res = await fetch("/api/generate", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ prompt }),
+				});
+				if (!res.ok) {
+					const err = await buildHttpError(res, "Failed to generate script");
+					const message = err.message;
+
+					// Try to honor rate-limit wait hints from headers or API message text.
+					const retryAfterHeader = res.headers.get("retry-after");
+					if (retryAfterHeader) {
+						const retryAfterSeconds = Number.parseInt(retryAfterHeader, 10);
+						if (!Number.isNaN(retryAfterSeconds) && retryAfterSeconds > 0) {
+							err.retryAfterMs = retryAfterSeconds * 1000;
+						}
+					}
+
+					if (!err.retryAfterMs && typeof message === "string") {
+						const match = message.match(
+							/(?:try again in|wait)\s*(\d+)\s*(second|seconds|sec|s|minute|minutes|min|m)/i,
+						);
+						if (match) {
+							const amount = Number.parseInt(match[1], 10);
+							const unit = match[2].toLowerCase();
+							if (!Number.isNaN(amount) && amount > 0) {
+								err.retryAfterMs = unit.startsWith("m")
+									? amount * 60000
+									: amount * 1000;
+							}
+						}
+					}
+
+					throw err;
+				}
+
+				const data = await res.json();
+
+				return data;
+			}
+
+			function updatePreviewButtonState() {
+				const hasSpeaker = Boolean(speaker_id);
+				previewVoiceBtn.disabled = !hasSpeaker || isPreviewPlaying;
+				previewVoiceBtn.textContent = isPreviewPlaying
+					? "Generating Preview..."
+					: "Preview Voice";
+			}
+
+			function populateVoiceSelect(speakers, selectedSpeaker) {
+				voiceSelect.innerHTML = "";
+
+				if (!Array.isArray(speakers) || speakers.length === 0) {
+					voiceSelect.innerHTML = `<option value="">No voices found</option>`;
+					voiceSelect.disabled = true;
+					speaker_id = undefined;
+					updatePreviewButtonState();
+					return;
+				}
+
+				speakers.forEach((speaker) => {
+					const option = document.createElement("option");
+					option.value = speaker;
+					option.textContent = speaker;
+					if (speaker === selectedSpeaker) {
+						option.selected = true;
+					}
+					voiceSelect.appendChild(option);
+				});
+
+				voiceSelect.disabled = false;
+				speaker_id = voiceSelect.value;
+				updatePreviewButtonState();
+			}
+
+			function populateLanguageSelect(languages, selectedLanguage) {
+				languageSelect.innerHTML = "";
+
+				if (!Array.isArray(languages) || languages.length === 0) {
+					languageSelect.innerHTML = `<option value="en">en</option>`;
+					languageSelect.disabled = true;
+					language_id = "en";
+					return;
+				}
+
+				languages.forEach((lang) => {
+					const option = document.createElement("option");
+					option.value = lang;
+					option.textContent = lang;
+					if (lang === selectedLanguage) option.selected = true;
+					languageSelect.appendChild(option);
+				});
+
+				if (!languages.includes(selectedLanguage)) {
+					languageSelect.value = languages[0];
+				}
+
+				language_id = languageSelect.value;
+				languageSelect.disabled = false;
+			}
+
+			async function fetchSpeakers() {
+				const res = await fetch("/api/speakers");
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to fetch voices");
+				}
+				const data = await res.json();
+				return Array.isArray(data?.speakers) ? data.speakers : [];
+			}
+
+			async function fetchDefaultSpeakerId() {
+				const res = await fetch("/api/coquiSpeakerId");
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to get default speaker");
+				}
+				const data = await res.json();
+				return {
+					speakerId: data?.speakerId,
+					languageId: data?.languageId,
+				};
+			}
+
+			async function fetchVideoConfig() {
+				const res = await fetch("/api/video-config");
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to fetch video config");
+				}
+				const data = await res.json();
+				return {
+					defaultOrientation: data?.defaultOrientation || "portrait",
+					defaultWidth: data?.defaultWidth || null,
+					defaultHeight: data?.defaultHeight || null,
+				};
+			}
+
+			async function fetchLanguages() {
+				const res = await fetch("/api/languages");
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to fetch languages");
+				}
+				const data = await res.json();
+				return Array.isArray(data?.languages) ? data.languages : [];
+			}
+
+			async function initVoicePicker() {
+				try {
+					const [speakers, defaults, languages] = await Promise.all([
+						fetchSpeakers(),
+						fetchDefaultSpeakerId(),
+						fetchLanguages(),
+					]);
+
+					let selected = defaults?.speakerId;
+					if (!speakers.includes(selected)) {
+						selected = speakers[0];
+					}
+
+					populateLanguageSelect(languages, defaults?.languageId || "en");
+					populateVoiceSelect(speakers, selected);
+				} catch (err) {
+					languageSelect.innerHTML = `<option value="en">en</option>`;
+					languageSelect.disabled = true;
+					language_id = "en";
+					voiceSelect.innerHTML = `<option value="">Voice loading failed</option>`;
+					voiceSelect.disabled = true;
+					speaker_id = undefined;
+					updatePreviewButtonState();
+					showToast(err?.message || "Failed to load voices");
+				}
+			}
+
+			async function initOrientationPicker() {
+				try {
+					const config = await fetchVideoConfig();
+					if (
+						["portrait", "landscape", "square", "original", "custom"].includes(
+							config.defaultOrientation,
+						)
+					) {
+						orientationSelect.value = config.defaultOrientation;
+					}
+					if (config.defaultWidth) {
+						customWidthInput.value = String(config.defaultWidth);
+					}
+					if (config.defaultHeight) {
+						customHeightInput.value = String(config.defaultHeight);
+					}
+				} catch (_err) {
+					orientationSelect.value = "portrait";
+				}
+
+				updateOrientationInputsVisibility();
+			}
+
+			async function previewSelectedVoice() {
+				if (!speaker_id || isPreviewPlaying) return;
+				isPreviewPlaying = true;
+				updatePreviewButtonState();
+
+				try {
+					const res = await fetch("/api/tts", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							text: PREVIEW_TEXT,
+							speaker_id,
+							language_id,
+						}),
+					});
+
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to generate voice preview");
+					}
+
+					const blob = await res.blob();
+					if (previewAudioUrl) {
+						URL.revokeObjectURL(previewAudioUrl);
+					}
+					previewAudioUrl = URL.createObjectURL(blob);
+					previewAudio.src = previewAudioUrl;
+					await previewAudio.play();
+				} catch (err) {
+					showToast(err?.message || "Voice preview failed");
+				} finally {
+					isPreviewPlaying = false;
+					updatePreviewButtonState();
+				}
+			}
+
+			voiceSelect.addEventListener("change", () => {
+				speaker_id = voiceSelect.value || undefined;
+				updatePreviewButtonState();
+			});
+
+			languageSelect.addEventListener("change", () => {
+				language_id = languageSelect.value || "en";
+			});
+
+			previewVoiceBtn.addEventListener("click", previewSelectedVoice);
+			orientationSelect.addEventListener(
+				"change",
+				updateOrientationInputsVisibility,
+			);
+
+			async function generateTTS(text) {
+				if (!speaker_id) {
+					await initVoicePicker();
+					if (!speaker_id) {
+						throw new Error("No speaker selected");
+					}
+				}
+				const res = await fetch("/api/tts", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ text, speaker_id, language_id }),
+				});
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to generate TTS audio");
+				}
+				const blob = await res.blob();
+				const base64 = await blobToBase64(blob);
+				return { base64 };
+			}
+
+			async function alignSubtitles(text, audioBase64) {
+				const res = await fetch("/api/align", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ text, audio: audioBase64 }),
+				});
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to align subtitles");
+				}
+				const result = await res.json();
+				if (!result?.srt || typeof result.srt !== "string") {
+					throw new Error("Invalid subtitle alignment response");
+				}
+				return result.srt;
+			}
+
+			async function burnVideo(audioBase64, srt, orientation, width, height) {
+				const res = await fetch("/api/burn", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						audio: audioBase64,
+						subtitles: srt,
+						orientation,
+						width,
+						height,
+					}),
+				});
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to render video");
+				}
+
+				const contentType = res.headers.get("content-type") || "";
+				if (!contentType.startsWith("video/")) {
+					throw new Error("Renderer did not return a video file");
+				}
+
+				const blob = await res.blob();
+				if (!blob || blob.size === 0) {
+					throw new Error("Renderer returned an empty video file");
+				}
+				return { url: URL.createObjectURL(blob) };
+			}
+
+			function blobToBase64(blob) {
+				return new Promise((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onloadend = () => resolve(reader.result.split(",")[1]);
+					reader.onerror = reject;
+					reader.readAsDataURL(blob);
+				});
+			}
+
+			initVoicePicker();
+			initOrientationPicker();
+		</script>
+
+		<footer class="border-top text-center py-3">
+			Made with <span style="color: red">&hearts;</span> by
+			<a
+				href="https://cirociampaglia.it"
+				class="text-black"
+				target="_blank"
+				rel="noopener noreferrer"
+				>Ciro Ciampaglia</a
+			>
+		</footer>
+	</body>
 </html>
