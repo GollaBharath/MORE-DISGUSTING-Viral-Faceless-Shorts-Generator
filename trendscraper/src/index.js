@@ -81,7 +81,7 @@ const SETTINGS_SCHEMA = {
 	coqui_quality_id: "string",
 	locale: "string",
 	subtitles_enabled_by_default: "bool",
-	ai_prompt_template: "string",
+	default_prompt_idea: "string",
 };
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".mkv", ".webm"]);
@@ -221,10 +221,7 @@ function loadRuntimeSettings() {
 			getSetting("subtitles_enabled_by_default", "true"),
 			true,
 		),
-		aiPromptTemplate: getSetting(
-			"ai_prompt_template",
-			DEFAULT_AI_PROMPT_TEMPLATE,
-		),
+		defaultPromptIdea: getSetting("default_prompt_idea", ""),
 	};
 }
 
@@ -240,7 +237,7 @@ function serializeRuntimeSettings(settings) {
 		coqui_quality_id: settings.coquiQualityId || null,
 		locale: settings.locale,
 		subtitles_enabled_by_default: settings.subtitlesEnabledByDefault,
-		ai_prompt_template: settings.aiPromptTemplate,
+		default_prompt_idea: settings.defaultPromptIdea,
 	};
 }
 
@@ -603,6 +600,60 @@ function extractJsonCandidate(text) {
 		.trim();
 }
 
+function parseGeneratedJsonResponse(rawText) {
+	const cleaned = extractJsonCandidate(String(rawText || ""));
+	if (!cleaned) {
+		throw new Error("Model response was empty");
+	}
+
+	try {
+		return JSON.parse(cleaned);
+	} catch {
+		// Continue with fallbacks for chatty model responses.
+	}
+
+	const fencedJsonBlockMatch = cleaned.match(/```json\s*([\s\S]*?)```/i);
+	if (fencedJsonBlockMatch?.[1]) {
+		try {
+			return JSON.parse(fencedJsonBlockMatch[1].trim());
+		} catch {
+			// Continue to next fallback.
+		}
+	}
+
+	const firstBrace = cleaned.indexOf("{");
+	const lastBrace = cleaned.lastIndexOf("}");
+	if (firstBrace >= 0 && lastBrace > firstBrace) {
+		const jsonSlice = cleaned.slice(firstBrace, lastBrace + 1);
+		try {
+			return JSON.parse(jsonSlice);
+		} catch {
+			// Continue to final failure below.
+		}
+	}
+
+	throw new Error("Model response did not contain valid JSON");
+}
+
+function normalizeOpenRouterMessageContent(content) {
+	if (typeof content === "string") {
+		return content;
+	}
+
+	if (Array.isArray(content)) {
+		return content
+			.map((part) => {
+				if (typeof part === "string") return part;
+				if (part && typeof part.text === "string") return part.text;
+				return "";
+			})
+			.join("\n")
+			.trim();
+	}
+
+	return "";
+}
+
 async function callGemini(parts) {
 	if (!GEMINI_API_KEY) {
 		throw new Error("GEMINI_API_KEY is not configured");
@@ -652,6 +703,9 @@ async function callOpenRouter(parts) {
 			body: JSON.stringify({
 				model: OPENROUTER_MODEL,
 				messages,
+				response_format: {
+					type: "json_object",
+				},
 			}),
 		},
 	);
@@ -663,7 +717,9 @@ async function callOpenRouter(parts) {
 		throw new Error(message);
 	}
 
-	const data = openRouterRes?.choices?.[0]?.message?.content;
+	const data = normalizeOpenRouterMessageContent(
+		openRouterRes?.choices?.[0]?.message?.content,
+	);
 	if (!data) {
 		throw new Error("OpenRouter response did not include generated content");
 	}
@@ -686,26 +742,25 @@ async function generateTextWithFallback(parts) {
 // ---------------- /generate ----------------
 app.post("/generate", async (req, res) => {
 	try {
-		const userPrompt = req.body?.prompt;
-		if (!userPrompt || typeof userPrompt !== "string") {
-			return res
-				.status(400)
-				.json({ error: "Missing required string field: prompt" });
+		const requestPrompt =
+			typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+		const fallbackPrompt = String(
+			runtimeSettings.defaultPromptIdea || "",
+		).trim();
+		const userPrompt = requestPrompt || fallbackPrompt;
+		if (!userPrompt) {
+			return res.status(400).json({
+				error:
+					"Missing prompt. Provide 'prompt' or configure default prompt in settings.",
+			});
 		}
 
 		const data = await generateTextWithFallback([
-			{ text: runtimeSettings.aiPromptTemplate || DEFAULT_AI_PROMPT_TEMPLATE },
+			{ text: DEFAULT_AI_PROMPT_TEMPLATE },
 			{ text: `USER_PROMPT:\n${userPrompt}` },
 		]);
-
-		const cleaned = extractJsonCandidate(data);
-
-		const json = cleaned.substring(
-			cleaned.indexOf("{"),
-			cleaned.lastIndexOf("}") + 1,
-		);
 		try {
-			return res.json(JSON.parse(json));
+			return res.json(parseGeneratedJsonResponse(data));
 		} catch (err) {
 			console.error("Error parsing JSON:", err);
 			return res
@@ -858,7 +913,9 @@ app.put("/settings", (req, res) => {
 	}
 
 	try {
-		for (const [key, value] of Object.entries(payload)) {
+		for (const [rawKey, value] of Object.entries(payload)) {
+			const key =
+				rawKey === "ai_prompt_template" ? "default_prompt_idea" : rawKey;
 			const normalized = validateAndNormalizeSettingValue(key, value);
 			if (key === "default_video_orientation") {
 				const orientation = normalizeOrientation(normalized);

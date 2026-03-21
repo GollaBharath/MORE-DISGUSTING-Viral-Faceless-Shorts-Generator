@@ -779,16 +779,16 @@
 									</button>
 								</div>
 								<div class="col-12">
-									<label for="settingsAiPromptTemplate" class="form-label"
-										>AI Prompt Template</label
+									<label for="settingsDefaultPromptIdea" class="form-label"
+										>Default Prompt or Idea</label
 									>
 									<textarea
-										id="settingsAiPromptTemplate"
+										id="settingsDefaultPromptIdea"
 										class="form-control"
 										rows="6"
-										placeholder="Instructions that are prepended before your topic when script generation runs."></textarea>
+										placeholder="Example: 5 easy gardening hacks for beginners."></textarea>
 									<div class="text-muted mt-1" style="font-size: 0.8rem">
-										This is the system prompt used for AI script generation.
+										Used as the default placeholder for the Topic or idea box.
 									</div>
 								</div>
 								<div class="col-12">
@@ -889,8 +889,8 @@
 			const settingsLanguageId = document.getElementById("settingsLanguageId");
 			const settingsQualityId = document.getElementById("settingsQualityId");
 			const settingsLocale = document.getElementById("settingsLocale");
-			const settingsAiPromptTemplate = document.getElementById(
-				"settingsAiPromptTemplate",
+			const settingsDefaultPromptIdea = document.getElementById(
+				"settingsDefaultPromptIdea",
 			);
 			const settingsUseCurrentVoiceBtn = document.getElementById(
 				"settingsUseCurrentVoiceBtn",
@@ -913,6 +913,8 @@
 			const generateScriptBtn = document.getElementById("generateScriptBtn");
 			const PREVIEW_TEXT =
 				"This is a sample voice preview for your next faceless short video.";
+			const DEFAULT_TOPIC_PLACEHOLDER =
+				"Example: 5 easy gardening hacks for beginners.";
 			const SETTINGS_LOCALES = [
 				"english",
 				"espanol",
@@ -942,6 +944,7 @@
 			let speaker_id = undefined;
 			let language_id = "";
 			let quality_id = "";
+			let defaultPromptIdeaValue = "";
 			let availableVoiceOptions = [];
 			let isPreviewPlaying = false;
 			let previewAudioUrl = null;
@@ -1236,10 +1239,11 @@
 				const source =
 					scriptSourceSelect?.value === "direct" ? "direct" : "gemini";
 				const prompt = scriptPromptInput.value.trim();
+				const effectivePrompt = prompt || defaultPromptIdeaValue;
 				const directScript = directScriptInput.value.trim();
 
-				if (source === "gemini" && !prompt) {
-					showToast("Please type a topic first");
+				if (source === "gemini" && !effectivePrompt) {
+					showToast("Set a default prompt in Settings or type a topic first");
 					return;
 				}
 
@@ -1262,7 +1266,7 @@
 
 				const id = generateId();
 				const inputPreview = truncatePreviewText(
-					source === "direct" ? directScript : prompt,
+					source === "direct" ? directScript : effectivePrompt,
 				);
 				createCard(id, inputPreview, source);
 				const card = document.getElementById(id);
@@ -1290,7 +1294,7 @@
 					return;
 				}
 
-				await runGenerationForCard(id, prompt, workflowSettings);
+				await runGenerationForCard(id, effectivePrompt, workflowSettings);
 				scriptPromptInput.value = "";
 			}
 
@@ -1767,9 +1771,19 @@
 					languageId: settings?.coqui_language_id || "",
 					qualityId: settings?.coqui_quality_id || "",
 				});
-				settingsAiPromptTemplate.value = settings?.ai_prompt_template || "";
+				settingsDefaultPromptIdea.value = settings?.default_prompt_idea || "";
 				settingsSubtitlesDefault.checked =
 					settings?.subtitles_enabled_by_default !== false;
+				applyDefaultPromptIdeaToInput(settings?.default_prompt_idea || "");
+			}
+
+			function applyDefaultPromptIdeaToInput(defaultPromptIdea) {
+				const normalized = String(defaultPromptIdea || "").trim();
+				defaultPromptIdeaValue = normalized;
+				if (settingsDefaultPromptIdea) {
+					settingsDefaultPromptIdea.value = normalized;
+				}
+				scriptPromptInput.placeholder = normalized || DEFAULT_TOPIC_PLACEHOLDER;
 			}
 
 			function setSelectToFallbackValue(selectEl, value, fallbackLabel) {
@@ -1979,7 +1993,7 @@
 					coqui_language_id: settingsLanguageId.value.trim(),
 					coqui_quality_id: settingsQualityId.value.trim(),
 					locale: settingsLocale.value || "english",
-					ai_prompt_template: settingsAiPromptTemplate.value.trim(),
+					default_prompt_idea: settingsDefaultPromptIdea.value.trim(),
 					subtitles_enabled_by_default: Boolean(
 						settingsSubtitlesDefault.checked,
 					),
@@ -1998,6 +2012,15 @@
 					populateSettingsForm(settings);
 				} catch (err) {
 					showToast(err?.message || "Failed to load settings");
+				}
+			}
+
+			async function initPromptIdeaDefault() {
+				try {
+					const settings = await fetchRuntimeSettings();
+					applyDefaultPromptIdeaToInput(settings?.default_prompt_idea || "");
+				} catch (_err) {
+					applyDefaultPromptIdeaToInput("");
 				}
 			}
 
@@ -2022,35 +2045,18 @@
 				saveSettingsBtn.disabled = true;
 				saveSettingsBtn.textContent = "Saving...";
 				try {
-					const savePayload = async (currentPayload) => {
-						const res = await fetch("/api/settings", {
-							method: "PUT",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify(currentPayload),
-						});
-						if (!res.ok) {
-							throw await buildHttpError(res, "Failed to save settings");
-						}
-					};
-
-					try {
-						await savePayload(payload);
-					} catch (err) {
-						const msg = String(err?.message || "");
-						if (/unsupported setting:\s*ai_prompt_template/i.test(msg)) {
-							const legacyPayload = { ...payload };
-							delete legacyPayload.ai_prompt_template;
-							await savePayload(legacyPayload);
-							showToast(
-								"Saved, but backend is older and does not support AI prompt template yet",
-							);
-						} else {
-							throw err;
-						}
+					const res = await fetch("/api/settings", {
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(payload),
+					});
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to save settings");
 					}
 
 					await initOrientationPicker();
 					await initVoicePicker();
+					applyDefaultPromptIdeaToInput(payload.default_prompt_idea);
 					await refreshVideoLibraries();
 					showToast("Settings saved");
 
@@ -2653,6 +2659,7 @@
 
 			initVoicePicker();
 			initOrientationPicker();
+			initPromptIdeaDefault();
 			updateScriptSourceInputs();
 			refreshVideoLibraries();
 		</script>
