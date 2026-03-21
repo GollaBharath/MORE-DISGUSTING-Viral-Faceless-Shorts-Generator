@@ -728,29 +728,68 @@
 									<label for="settingsSpeakerId" class="form-label"
 										>Default Speaker ID</label
 									>
-									<input
-										id="settingsSpeakerId"
-										type="text"
-										class="form-control"
-										placeholder="Ana Florence" />
+									<select id="settingsSpeakerId" class="form-select">
+										<option value="">Select a voice</option>
+									</select>
 								</div>
 								<div class="col-md-3">
 									<label for="settingsLanguageId" class="form-label"
 										>Default Language ID</label
 									>
-									<input
-										id="settingsLanguageId"
-										type="text"
-										class="form-control"
-										placeholder="en" />
+									<select id="settingsLanguageId" class="form-select">
+										<option value="">Select language</option>
+									</select>
+								</div>
+								<div class="col-md-3">
+									<label for="settingsQualityId" class="form-label"
+										>Default Quality</label
+									>
+									<select id="settingsQualityId" class="form-select">
+										<option value="">Select quality</option>
+									</select>
 								</div>
 								<div class="col-md-3">
 									<label for="settingsLocale" class="form-label">Locale</label>
-									<input
-										id="settingsLocale"
-										type="text"
+									<select id="settingsLocale" class="form-select">
+										<option value="english">english</option>
+										<option value="espanol">espanol</option>
+										<option value="french">french</option>
+										<option value="german">german</option>
+										<option value="italian">italian</option>
+										<option value="portuguese">portuguese</option>
+										<option value="polish">polish</option>
+										<option value="turkish">turkish</option>
+										<option value="russian">russian</option>
+										<option value="dutch">dutch</option>
+										<option value="czech">czech</option>
+										<option value="arabic">arabic</option>
+										<option value="chinese">chinese</option>
+										<option value="japanese">japanese</option>
+										<option value="hungarian">hungarian</option>
+										<option value="korean">korean</option>
+										<option value="hindi">hindi</option>
+									</select>
+								</div>
+								<div class="col-12 d-flex justify-content-end">
+									<button
+										type="button"
+										class="btn btn-outline-secondary btn-sm"
+										id="settingsUseCurrentVoiceBtn">
+										Use Current Voice Selection
+									</button>
+								</div>
+								<div class="col-12">
+									<label for="settingsAiPromptTemplate" class="form-label"
+										>AI Prompt Template</label
+									>
+									<textarea
+										id="settingsAiPromptTemplate"
 										class="form-control"
-										placeholder="english" />
+										rows="6"
+										placeholder="Instructions that are prepended before your topic when script generation runs."></textarea>
+									<div class="text-muted mt-1" style="font-size: 0.8rem">
+										This is the system prompt used for AI script generation.
+									</div>
 								</div>
 								<div class="col-12">
 									<div class="form-check">
@@ -848,7 +887,14 @@
 			);
 			const settingsSpeakerId = document.getElementById("settingsSpeakerId");
 			const settingsLanguageId = document.getElementById("settingsLanguageId");
+			const settingsQualityId = document.getElementById("settingsQualityId");
 			const settingsLocale = document.getElementById("settingsLocale");
+			const settingsAiPromptTemplate = document.getElementById(
+				"settingsAiPromptTemplate",
+			);
+			const settingsUseCurrentVoiceBtn = document.getElementById(
+				"settingsUseCurrentVoiceBtn",
+			);
 			const settingsSubtitlesDefault = document.getElementById(
 				"settingsSubtitlesDefault",
 			);
@@ -867,6 +913,25 @@
 			const generateScriptBtn = document.getElementById("generateScriptBtn");
 			const PREVIEW_TEXT =
 				"This is a sample voice preview for your next faceless short video.";
+			const SETTINGS_LOCALES = [
+				"english",
+				"espanol",
+				"french",
+				"german",
+				"italian",
+				"portuguese",
+				"polish",
+				"turkish",
+				"russian",
+				"dutch",
+				"czech",
+				"arabic",
+				"chinese",
+				"japanese",
+				"hungarian",
+				"korean",
+				"hindi",
+			];
 
 			let ttsQueue = [],
 				alignQueue = [],
@@ -1696,11 +1761,207 @@
 					settings?.default_video_orientation || "portrait";
 				settingsDefaultWidth.value = settings?.default_video_width || "";
 				settingsDefaultHeight.value = settings?.default_video_height || "";
-				settingsSpeakerId.value = settings?.coqui_speaker_id || "";
-				settingsLanguageId.value = settings?.coqui_language_id || "";
-				settingsLocale.value = settings?.locale || "english";
+				populateSettingsLocaleSelect(settings?.locale || "english");
+				syncSettingsVoiceDefaults({
+					speakerId: settings?.coqui_speaker_id || "",
+					languageId: settings?.coqui_language_id || "",
+					qualityId: settings?.coqui_quality_id || "",
+				});
+				settingsAiPromptTemplate.value = settings?.ai_prompt_template || "";
 				settingsSubtitlesDefault.checked =
 					settings?.subtitles_enabled_by_default !== false;
+			}
+
+			function setSelectToFallbackValue(selectEl, value, fallbackLabel) {
+				const normalized = String(value || "").trim();
+				selectEl.innerHTML = "";
+				const option = document.createElement("option");
+				option.value = normalized;
+				option.textContent = fallbackLabel;
+				selectEl.appendChild(option);
+				selectEl.value = normalized;
+			}
+
+			function populateSettingsLocaleSelect(selectedLocale) {
+				const normalized = String(selectedLocale || "english")
+					.trim()
+					.toLowerCase();
+				settingsLocale.innerHTML = "";
+
+				SETTINGS_LOCALES.forEach((locale) => {
+					const option = document.createElement("option");
+					option.value = locale;
+					option.textContent = locale;
+					settingsLocale.appendChild(option);
+				});
+
+				if (!SETTINGS_LOCALES.includes(normalized)) {
+					const option = document.createElement("option");
+					option.value = normalized || "english";
+					option.textContent = normalized || "english";
+					settingsLocale.appendChild(option);
+				}
+
+				settingsLocale.value = normalized || "english";
+			}
+
+			function populateSettingsLanguageSelect(languages, selectedLanguage) {
+				settingsLanguageId.innerHTML = "";
+				if (!Array.isArray(languages) || languages.length === 0) {
+					setSelectToFallbackValue(
+						settingsLanguageId,
+						selectedLanguage,
+						"No languages",
+					);
+					return;
+				}
+
+				languages.forEach((lang) => {
+					const option = document.createElement("option");
+					option.value = lang.code;
+					option.textContent = lang.label;
+					settingsLanguageId.appendChild(option);
+				});
+
+				if (
+					selectedLanguage &&
+					!languages.some((l) => l.code === selectedLanguage)
+				) {
+					const option = document.createElement("option");
+					option.value = selectedLanguage;
+					option.textContent = `${selectedLanguage} (saved)`;
+					settingsLanguageId.appendChild(option);
+				}
+
+				settingsLanguageId.value =
+					selectedLanguage &&
+					settingsLanguageId.querySelector(
+						`option[value="${CSS.escape(selectedLanguage)}"]`,
+					)
+						? selectedLanguage
+						: languages[0].code;
+			}
+
+			function populateSettingsQualitySelect(qualities, selectedQuality) {
+				settingsQualityId.innerHTML = "";
+				if (!Array.isArray(qualities) || qualities.length === 0) {
+					setSelectToFallbackValue(
+						settingsQualityId,
+						selectedQuality,
+						"No quality",
+					);
+					return;
+				}
+
+				qualities.forEach((quality) => {
+					const option = document.createElement("option");
+					option.value = quality;
+					option.textContent = quality;
+					settingsQualityId.appendChild(option);
+				});
+
+				if (selectedQuality && !qualities.includes(selectedQuality)) {
+					const option = document.createElement("option");
+					option.value = selectedQuality;
+					option.textContent = `${selectedQuality} (saved)`;
+					settingsQualityId.appendChild(option);
+				}
+
+				settingsQualityId.value =
+					selectedQuality &&
+					settingsQualityId.querySelector(
+						`option[value="${CSS.escape(selectedQuality)}"]`,
+					)
+						? selectedQuality
+						: qualities[0];
+			}
+
+			function populateSettingsVoiceSelect(voices, selectedSpeakerKey) {
+				settingsSpeakerId.innerHTML = "";
+				if (!Array.isArray(voices) || voices.length === 0) {
+					setSelectToFallbackValue(
+						settingsSpeakerId,
+						selectedSpeakerKey,
+						"No voices found",
+					);
+					return;
+				}
+
+				voices.forEach((voice) => {
+					const option = document.createElement("option");
+					option.value = voice.key;
+					option.textContent = `${voice.name} (${voice.key})`;
+					settingsSpeakerId.appendChild(option);
+				});
+
+				if (
+					selectedSpeakerKey &&
+					!voices.some((voice) => voice.key === selectedSpeakerKey)
+				) {
+					const option = document.createElement("option");
+					option.value = selectedSpeakerKey;
+					option.textContent = `${selectedSpeakerKey} (saved)`;
+					settingsSpeakerId.appendChild(option);
+				}
+
+				settingsSpeakerId.value =
+					selectedSpeakerKey &&
+					settingsSpeakerId.querySelector(
+						`option[value="${CSS.escape(selectedSpeakerKey)}"]`,
+					)
+						? selectedSpeakerKey
+						: voices[0].key;
+			}
+
+			function syncSettingsVoiceDefaults({
+				speakerId,
+				languageId,
+				qualityId,
+			} = {}) {
+				if (
+					!Array.isArray(availableVoiceOptions) ||
+					availableVoiceOptions.length === 0
+				) {
+					setSelectToFallbackValue(
+						settingsLanguageId,
+						languageId,
+						"No languages",
+					);
+					setSelectToFallbackValue(settingsQualityId, qualityId, "No quality");
+					setSelectToFallbackValue(
+						settingsSpeakerId,
+						speakerId,
+						"No voices found",
+					);
+					return;
+				}
+
+				const languages = getAvailableLanguages();
+				const selectedLanguage =
+					languageId || settingsLanguageId.value || language_id;
+				populateSettingsLanguageSelect(languages, selectedLanguage);
+
+				const activeLanguage = settingsLanguageId.value || "";
+				const qualities = getAvailableQualities(activeLanguage);
+				const selectedQuality =
+					qualityId || settingsQualityId.value || quality_id;
+				populateSettingsQualitySelect(qualities, selectedQuality);
+
+				const activeQuality = settingsQualityId.value || "";
+				const voices = getAvailableVoices(activeLanguage, activeQuality);
+				populateSettingsVoiceSelect(
+					voices,
+					speakerId || settingsSpeakerId.value || speaker_id,
+				);
+			}
+
+			function applyCurrentVoiceSelectionToSettings() {
+				syncSettingsVoiceDefaults({
+					speakerId: speaker_id || "",
+					languageId: language_id || "",
+					qualityId: quality_id || "",
+				});
+				showToast("Copied current voice selection into defaults");
 			}
 
 			function collectSettingsPayload() {
@@ -1716,7 +1977,9 @@
 					),
 					coqui_speaker_id: settingsSpeakerId.value.trim(),
 					coqui_language_id: settingsLanguageId.value.trim(),
-					locale: settingsLocale.value.trim() || "english",
+					coqui_quality_id: settingsQualityId.value.trim(),
+					locale: settingsLocale.value || "english",
+					ai_prompt_template: settingsAiPromptTemplate.value.trim(),
 					subtitles_enabled_by_default: Boolean(
 						settingsSubtitlesDefault.checked,
 					),
@@ -1725,6 +1988,12 @@
 
 			async function loadSettingsIntoModal() {
 				try {
+					if (!availableVoiceOptions.length) {
+						const voices = await fetchVoiceOptions();
+						availableVoiceOptions = voices.filter(
+							(v) => v?.key && v?.name && v?.languageCode && v?.quality,
+						);
+					}
 					const settings = await fetchRuntimeSettings();
 					populateSettingsForm(settings);
 				} catch (err) {
@@ -1753,13 +2022,31 @@
 				saveSettingsBtn.disabled = true;
 				saveSettingsBtn.textContent = "Saving...";
 				try {
-					const res = await fetch("/api/settings", {
-						method: "PUT",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify(payload),
-					});
-					if (!res.ok) {
-						throw await buildHttpError(res, "Failed to save settings");
+					const savePayload = async (currentPayload) => {
+						const res = await fetch("/api/settings", {
+							method: "PUT",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(currentPayload),
+						});
+						if (!res.ok) {
+							throw await buildHttpError(res, "Failed to save settings");
+						}
+					};
+
+					try {
+						await savePayload(payload);
+					} catch (err) {
+						const msg = String(err?.message || "");
+						if (/unsupported setting:\s*ai_prompt_template/i.test(msg)) {
+							const legacyPayload = { ...payload };
+							delete legacyPayload.ai_prompt_template;
+							await savePayload(legacyPayload);
+							showToast(
+								"Saved, but backend is older and does not support AI prompt template yet",
+							);
+						} else {
+							throw err;
+						}
 					}
 
 					await initOrientationPicker();
@@ -1920,6 +2207,22 @@
 				populateVoiceSelect(voices, speaker_id);
 			});
 
+			settingsLanguageId.addEventListener("change", () => {
+				syncSettingsVoiceDefaults({
+					languageId: settingsLanguageId.value || "",
+					qualityId: settingsQualityId.value || "",
+					speakerId: settingsSpeakerId.value || "",
+				});
+			});
+
+			settingsQualityId.addEventListener("change", () => {
+				syncSettingsVoiceDefaults({
+					languageId: settingsLanguageId.value || "",
+					qualityId: settingsQualityId.value || "",
+					speakerId: settingsSpeakerId.value || "",
+				});
+			});
+
 			previewVoiceBtn.addEventListener("click", previewSelectedVoice);
 			orientationSelect.addEventListener(
 				"change",
@@ -1928,6 +2231,10 @@
 			scriptSourceSelect.addEventListener("change", updateScriptSourceInputs);
 			openSettingsBtn.addEventListener("click", loadSettingsIntoModal);
 			saveSettingsBtn.addEventListener("click", saveSettingsFromModal);
+			settingsUseCurrentVoiceBtn.addEventListener(
+				"click",
+				applyCurrentVoiceSelectionToSettings,
+			);
 			uploadVideosBtn.addEventListener("click", uploadBackgroundVideos);
 
 			document.querySelectorAll(".copy-tag-btn").forEach((btn) => {

@@ -54,6 +54,20 @@ const APP_DB_PATH = process.env.APP_DB_PATH || "/app/data/settings.db";
 const DEFAULT_INPUT_VIDEOS_DIR = process.env.INPUT_VIDEOS_DIR || "/mnt/videos";
 const DEFAULT_OUTPUT_VIDEOS_DIR =
 	process.env.OUTPUT_VIDEOS_DIR || "/mnt/videos/generated";
+const DEFAULT_AI_PROMPT_TEMPLATE = `You are a professional short-form content strategist and scriptwriter.
+
+You will receive a USER_PROMPT describing what kind of video to create.
+
+Create exactly one JSON object with these fields:
+- "title": catchy title under 100 characters. Hashtags are allowed.
+- "description": short engaging description with relevant hashtags.
+- "body": voiceover script for a faceless short video (250-300 words), fast paced, natural narration, no placeholders.
+
+Rules:
+- Make the script strong for retention: hook early, keep momentum, finish with a call to action.
+- Do not use first-person visual framing like "I am on screen".
+- Do not include hashtags in "body"; hashtags belong only in title/description.
+- Return only valid JSON. No markdown fences. No extra text.`;
 
 const db = initSettingsDatabase(APP_DB_PATH);
 const SETTINGS_SCHEMA = {
@@ -67,6 +81,7 @@ const SETTINGS_SCHEMA = {
 	coqui_quality_id: "string",
 	locale: "string",
 	subtitles_enabled_by_default: "bool",
+	ai_prompt_template: "string",
 };
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".mkv", ".webm"]);
@@ -104,21 +119,6 @@ let ttsVoicesCache = {
 	expiresAt: 0,
 	voices: [],
 };
-
-let prompt = `You are a professional short-form content strategist and scriptwriter.
-
-You will receive a USER_PROMPT describing what kind of video to create.
-
-Create exactly one JSON object with these fields:
-- "title": catchy title under 100 characters. Hashtags are allowed.
-- "description": short engaging description with relevant hashtags.
-- "body": voiceover script for a faceless short video (250-300 words), fast paced, natural narration, no placeholders.
-
-Rules:
-- Make the script strong for retention: hook early, keep momentum, finish with a call to action.
-- Do not use first-person visual framing like "I am on screen".
-- Do not include hashtags in "body"; hashtags belong only in title/description.
-- Return only valid JSON. No markdown fences. No extra text.`;
 
 let runtimeSettings = loadRuntimeSettings();
 
@@ -221,6 +221,10 @@ function loadRuntimeSettings() {
 			getSetting("subtitles_enabled_by_default", "true"),
 			true,
 		),
+		aiPromptTemplate: getSetting(
+			"ai_prompt_template",
+			DEFAULT_AI_PROMPT_TEMPLATE,
+		),
 	};
 }
 
@@ -236,6 +240,7 @@ function serializeRuntimeSettings(settings) {
 		coqui_quality_id: settings.coquiQualityId || null,
 		locale: settings.locale,
 		subtitles_enabled_by_default: settings.subtitlesEnabledByDefault,
+		ai_prompt_template: settings.aiPromptTemplate,
 	};
 }
 
@@ -689,7 +694,7 @@ app.post("/generate", async (req, res) => {
 		}
 
 		const data = await generateTextWithFallback([
-			{ text: prompt },
+			{ text: runtimeSettings.aiPromptTemplate || DEFAULT_AI_PROMPT_TEMPLATE },
 			{ text: `USER_PROMPT:\n${userPrompt}` },
 		]);
 
