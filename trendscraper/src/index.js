@@ -15,9 +15,22 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL =
 	process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
 const LOCALE = process.env.LOCALE || "english";
-const COQUI_BASE_URL =
-	process.env.COQUI_BASE_URL || "http://coqui:5002/api/tts";
-const COQUI_SERVER_URL = process.env.COQUI_SERVER_URL || "http://coqui:5002";
+const LEGACY_COQUI_BASE_URL = process.env.COQUI_BASE_URL;
+const LEGACY_COQUI_SERVER_URL = process.env.COQUI_SERVER_URL;
+const MAPPED_LEGACY_TTS_BASE_URL = LEGACY_COQUI_BASE_URL
+	? LEGACY_COQUI_BASE_URL.replace("://coqui:", "://piper:")
+	: undefined;
+const MAPPED_LEGACY_TTS_SERVER_URL = LEGACY_COQUI_SERVER_URL
+	? LEGACY_COQUI_SERVER_URL.replace("://coqui:", "://piper:")
+	: undefined;
+const TTS_BASE_URL =
+	process.env.PIPER_BASE_URL ||
+	MAPPED_LEGACY_TTS_BASE_URL ||
+	"http://piper:5002/api/tts";
+const TTS_SERVER_URL =
+	process.env.PIPER_SERVER_URL ||
+	MAPPED_LEGACY_TTS_SERVER_URL ||
+	"http://piper:5002";
 const TTS_UPSTREAM_TIMEOUT_MS =
 	Number.parseInt(process.env.TTS_UPSTREAM_TIMEOUT_MS || "86400000", 10) ||
 	86400000;
@@ -51,6 +64,7 @@ const SETTINGS_SCHEMA = {
 	default_video_height: "int",
 	coqui_speaker_id: "string",
 	coqui_language_id: "string",
+	coqui_quality_id: "string",
 	locale: "string",
 	subtitles_enabled_by_default: "bool",
 };
@@ -84,86 +98,12 @@ const LOCALE_LANGUAGE_MAP = {
 	hindi: "hi",
 };
 
-const XTTS_FALLBACK_LANGUAGES = [
-	"en",
-	"es",
-	"fr",
-	"de",
-	"it",
-	"pt",
-	"pl",
-	"tr",
-	"ru",
-	"nl",
-	"cs",
-	"ar",
-	"zh-cn",
-	"hu",
-	"ko",
-	"ja",
-	"hi",
-];
-
-const XTTS_FALLBACK_SPEAKERS = [
-	"Claribel Dervla",
-	"Daisy Studious",
-	"Gracie Wise",
-	"Tammie Ema",
-	"Alison Dietlinde",
-	"Ana Florence",
-	"Annmarie Nele",
-	"Asya Anara",
-	"Brenda Stern",
-	"Gitta Nikolina",
-	"Henriette Usha",
-	"Sofia Hellen",
-	"Tammy Grit",
-	"Tanja Adelina",
-	"Vjollca Johnnie",
-	"Andrew Chipper",
-	"Badr Odhiambo",
-	"Dionisio Schuyler",
-	"Royston Min",
-	"Viktor Eka",
-	"Abrahan Mack",
-	"Adde Michal",
-	"Baldur Sanjin",
-	"Craig Gutsy",
-	"Damien Black",
-	"Gilberto Mathias",
-	"Ilkin Urbano",
-	"Kazuhiko Atallah",
-	"Ludvig Milivoj",
-	"Suad Qasim",
-	"Torcull Diarmuid",
-	"Viktor Menelaos",
-	"Zacharie Aimilios",
-	"Nova Hogarth",
-	"Maja Ruoho",
-	"Uta Obando",
-	"Lidiya Szekeres",
-	"Chandra MacFarland",
-	"Szofi Granger",
-	"Camilla Holmstrom",
-	"Lilya Stainthorpe",
-	"Zofija Kendrick",
-	"Narelle Moon",
-	"Barbora MacLean",
-	"Alexandra Hisakawa",
-	"Alma Maria",
-	"Rosemary Okafor",
-	"Ige Behringer",
-	"Filip Traverse",
-	"Damjan Chapman",
-	"Wulf Carlevaro",
-	"Aaron Dreschner",
-	"Kumar Dahl",
-	"Eugenio Mataraci",
-	"Ferran Simen",
-	"Xavier Hayasaka",
-	"Luis Moray",
-	"Marcos Rudaski",
-];
+const DEFAULT_TTS_QUALITY = process.env.PIPER_QUALITY || "medium";
+const TTS_VOICE_CACHE_TTL_MS = 5 * 60 * 1000;
+let ttsVoicesCache = {
+	expiresAt: 0,
+	voices: [],
+};
 
 let prompt = `You are a professional short-form content strategist and scriptwriter.
 
@@ -272,6 +212,10 @@ function loadRuntimeSettings() {
 			"coqui_language_id",
 			process.env.COQUI_LANGUAGE_ID || "",
 		),
+		coquiQualityId: getSetting(
+			"coqui_quality_id",
+			process.env.PIPER_QUALITY || DEFAULT_TTS_QUALITY,
+		),
 		locale: getSetting("locale", LOCALE),
 		subtitlesEnabledByDefault: parseBoolean(
 			getSetting("subtitles_enabled_by_default", "true"),
@@ -289,6 +233,7 @@ function serializeRuntimeSettings(settings) {
 		default_video_height: settings.defaultVideoHeight,
 		coqui_speaker_id: settings.coquiSpeakerId || null,
 		coqui_language_id: settings.coquiLanguageId || null,
+		coqui_quality_id: settings.coquiQualityId || null,
 		locale: settings.locale,
 		subtitles_enabled_by_default: settings.subtitlesEnabledByDefault,
 	};
@@ -339,6 +284,93 @@ function ensureDirectoryExists(folderPath) {
 	if (!fs.existsSync(folderPath)) {
 		fs.mkdirSync(folderPath, { recursive: true });
 	}
+}
+
+function isValidVideoFilename(filename) {
+	if (typeof filename !== "string") return false;
+	if (!filename || filename.includes("/") || filename.includes("\\")) {
+		return false;
+	}
+	if (filename.includes("..")) return false;
+	return VIDEO_EXTENSIONS.has(path.extname(filename).toLowerCase());
+}
+
+function resolveVideoPathInDirectory(
+	rootDirectory,
+	filename,
+	{ mustExist = false } = {},
+) {
+	if (!isValidVideoFilename(filename)) {
+		const err = new Error("Invalid filename");
+		err.status = 400;
+		throw err;
+	}
+
+	ensureDirectoryExists(rootDirectory);
+	const rootDir = path.resolve(rootDirectory);
+	const resolved = path.resolve(rootDir, filename);
+	if (!resolved.startsWith(`${rootDir}${path.sep}`)) {
+		const err = new Error("Invalid filename");
+		err.status = 400;
+		throw err;
+	}
+
+	if (mustExist && !fs.existsSync(resolved)) {
+		const err = new Error("Video file not found");
+		err.status = 404;
+		throw err;
+	}
+
+	return resolved;
+}
+
+function resolveInputVideoPath(filename, { mustExist = false } = {}) {
+	return resolveVideoPathInDirectory(runtimeSettings.inputVideosDir, filename, {
+		mustExist,
+	});
+}
+
+function resolveOutputVideoPath(filename, { mustExist = false } = {}) {
+	return resolveVideoPathInDirectory(
+		runtimeSettings.outputVideosDir,
+		filename,
+		{
+			mustExist,
+		},
+	);
+}
+
+function sanitizeRenameTarget(rawName, fallbackExt) {
+	if (typeof rawName !== "string") {
+		const err = new Error("newFilename must be a string");
+		err.status = 400;
+		throw err;
+	}
+
+	const trimmed = rawName.trim();
+	if (!trimmed) {
+		const err = new Error("newFilename cannot be empty");
+		err.status = 400;
+		throw err;
+	}
+
+	const parsed = path.parse(trimmed);
+	let safeBase = (parsed.name || "video")
+		.replace(/[^a-zA-Z0-9._-]/g, "_")
+		.replace(/_+/g, "_")
+		.slice(0, 80)
+		.replace(/^_+|_+$/g, "");
+	if (!safeBase) safeBase = "video";
+
+	let ext = String(parsed.ext || "").toLowerCase();
+	if (!ext) ext = String(fallbackExt || "").toLowerCase();
+	if (!VIDEO_EXTENSIONS.has(ext)) {
+		const err = new Error("Filename must use a supported video extension");
+		err.status = 400;
+		throw err;
+	}
+
+	return `${safeBase}${ext}`;
 }
 
 function sanitizeUploadedFileName(originalName) {
@@ -413,6 +445,12 @@ async function proxyTTSRequest(req, res) {
 		process.env.COQUI_LANGUAGE_ID ??
 		LOCALE_LANGUAGE_MAP[String(runtimeSettings.locale || "").toLowerCase()] ??
 		"en";
+	const qualityId =
+		req.body?.quality_id ??
+		req.query?.quality_id ??
+		runtimeSettings.coquiQualityId ??
+		process.env.PIPER_QUALITY ??
+		DEFAULT_TTS_QUALITY;
 
 	if (!text || typeof text !== "string") {
 		return res
@@ -430,12 +468,16 @@ async function proxyTTSRequest(req, res) {
 		params.set("text", text);
 		if (speakerId) {
 			params.set("speaker_id", String(speakerId));
+			params.set("voice_key", String(speakerId));
 		}
 		if (languageId) {
 			params.set("language_id", String(languageId));
 		}
+		if (qualityId) {
+			params.set("quality_id", String(qualityId));
+		}
 
-		const url = `${COQUI_BASE_URL}?${params.toString()}`;
+		const url = `${TTS_BASE_URL}?${params.toString()}`;
 		const response = await fetch(url, {
 			signal: AbortSignal.timeout(TTS_UPSTREAM_TIMEOUT_MS),
 			dispatcher: TTS_FETCH_DISPATCHER,
@@ -443,8 +485,8 @@ async function proxyTTSRequest(req, res) {
 		if (!response.ok) {
 			const errorText = await response.text();
 			return res.status(response.status).json({
-				error: "Coqui TTS request failed",
-				details: errorText || `Coqui returned HTTP ${response.status}`,
+				error: "TTS request failed",
+				details: errorText || `TTS upstream returned HTTP ${response.status}`,
 			});
 		}
 
@@ -460,55 +502,92 @@ async function proxyTTSRequest(req, res) {
 	}
 }
 
-function extractSelectOptions(html, selectId) {
-	const selectRegex = new RegExp(
-		`<select[^>]*id=["']${selectId}["'][^>]*>([\\s\\S]*?)<\\/select>`,
-		"i",
-	);
-	const match = html.match(selectRegex);
-	if (!match) return [];
+function normalizeVoiceOption(voice) {
+	if (!voice || typeof voice !== "object") return null;
+	const key = String(voice.key || "").trim();
+	const name = String(voice.name || "").trim();
+	const languageCode = String(voice.languageCode || "").trim();
+	const quality = String(voice.quality || "").trim();
+	if (!key || !name || !languageCode || !quality) return null;
 
-	const optionRegex = /<option[^>]*value=["']([^"']+)["'][^>]*>/gi;
-	const options = [];
-	let optionMatch;
-
-	while ((optionMatch = optionRegex.exec(match[1])) !== null) {
-		const value = String(optionMatch[1] || "").trim();
-		if (!value) continue;
-		if (!options.includes(value)) options.push(value);
-	}
-
-	return options;
+	return {
+		key,
+		name,
+		languageCode,
+		languageNameEnglish: String(voice.languageNameEnglish || "").trim(),
+		languageNameNative: String(voice.languageNameNative || "").trim(),
+		quality,
+	};
 }
 
-async function getCoquiSpeakers() {
-	try {
-		const response = await fetch(`${COQUI_SERVER_URL}/`);
-		if (!response.ok) {
-			throw new Error(`Coqui homepage returned HTTP ${response.status}`);
-		}
-
-		const html = await response.text();
-		const parsed = extractSelectOptions(html, "speaker_id");
-		return parsed.length > 0 ? parsed : XTTS_FALLBACK_SPEAKERS;
-	} catch (_err) {
-		return XTTS_FALLBACK_SPEAKERS;
+async function getTTSVoices({ forceRefresh = false } = {}) {
+	const now = Date.now();
+	if (
+		!forceRefresh &&
+		now < ttsVoicesCache.expiresAt &&
+		Array.isArray(ttsVoicesCache.voices)
+	) {
+		return ttsVoicesCache.voices;
 	}
+
+	const response = await fetch(`${TTS_SERVER_URL}/api/voices`, {
+		signal: AbortSignal.timeout(TTS_UPSTREAM_TIMEOUT_MS),
+		dispatcher: TTS_FETCH_DISPATCHER,
+	});
+	if (!response.ok) {
+		throw new Error(`TTS voices endpoint returned HTTP ${response.status}`);
+	}
+
+	const payload = await response.json();
+	const rawVoices = Array.isArray(payload?.voices) ? payload.voices : [];
+	const voices = rawVoices.map(normalizeVoiceOption).filter(Boolean);
+
+	ttsVoicesCache = {
+		expiresAt: now + TTS_VOICE_CACHE_TTL_MS,
+		voices,
+	};
+
+	return voices;
+}
+
+function filterTTSVoices(voices, { languageId, qualityId } = {}) {
+	const normalizedLanguage = String(languageId || "").trim();
+	const normalizedQuality = String(qualityId || "").trim();
+
+	return voices.filter((voice) => {
+		if (
+			normalizedLanguage &&
+			voice.languageCode !== normalizedLanguage &&
+			!voice.languageCode.startsWith(`${normalizedLanguage}_`)
+		) {
+			return false;
+		}
+		if (normalizedQuality && voice.quality !== normalizedQuality) {
+			return false;
+		}
+		return true;
+	});
+}
+
+async function getCoquiSpeakers({ languageId, qualityId } = {}) {
+	const voices = await getTTSVoices();
+	const filtered = filterTTSVoices(voices, { languageId, qualityId });
+	return filtered.map((voice) => voice.key);
 }
 
 async function getCoquiLanguages() {
-	try {
-		const response = await fetch(`${COQUI_SERVER_URL}/`);
-		if (!response.ok) {
-			throw new Error(`Coqui homepage returned HTTP ${response.status}`);
-		}
+	const voices = await getTTSVoices();
+	const languages = [...new Set(voices.map((voice) => voice.languageCode))];
+	languages.sort((a, b) => a.localeCompare(b));
+	return languages;
+}
 
-		const html = await response.text();
-		const parsed = extractSelectOptions(html, "language_id");
-		return parsed.length > 0 ? parsed : XTTS_FALLBACK_LANGUAGES;
-	} catch (_err) {
-		return XTTS_FALLBACK_LANGUAGES;
-	}
+async function getTTSQualities({ languageId } = {}) {
+	const voices = await getTTSVoices();
+	const filtered = filterTTSVoices(voices, { languageId });
+	const qualities = [...new Set(filtered.map((voice) => voice.quality))];
+	qualities.sort((a, b) => a.localeCompare(b));
+	return qualities;
 }
 
 function extractJsonCandidate(text) {
@@ -641,13 +720,27 @@ app.post("/tts", proxyTTSRequest);
 
 app.get("/speakers", async (req, res) => {
 	try {
-		const speakers = await getCoquiSpeakers();
+		const languageId = req.query?.language_id;
+		const qualityId = req.query?.quality_id;
+		const speakers = await getCoquiSpeakers({ languageId, qualityId });
 		return res.json({ speakers });
 	} catch (err) {
-		console.error("Failed to fetch Coqui speakers:", err);
+		console.error("Failed to fetch TTS speakers:", err);
 		return res
 			.status(500)
 			.json({ error: "Failed to fetch speakers", details: String(err) });
+	}
+});
+
+app.get("/voices", async (_req, res) => {
+	try {
+		const voices = await getTTSVoices();
+		return res.json({ voices, total: voices.length });
+	} catch (err) {
+		console.error("Failed to fetch TTS voices:", err);
+		return res
+			.status(500)
+			.json({ error: "Failed to fetch voices", details: String(err) });
 	}
 });
 
@@ -656,10 +749,23 @@ app.get("/languages", async (req, res) => {
 		const languages = await getCoquiLanguages();
 		return res.json({ languages });
 	} catch (err) {
-		console.error("Failed to fetch Coqui languages:", err);
+		console.error("Failed to fetch TTS languages:", err);
 		return res
 			.status(500)
 			.json({ error: "Failed to fetch languages", details: String(err) });
+	}
+});
+
+app.get("/qualities", async (req, res) => {
+	try {
+		const languageId = req.query?.language_id;
+		const qualities = await getTTSQualities({ languageId });
+		return res.json({ qualities });
+	} catch (err) {
+		console.error("Failed to fetch TTS qualities:", err);
+		return res
+			.status(500)
+			.json({ error: "Failed to fetch qualities", details: String(err) });
 	}
 });
 
@@ -807,20 +913,17 @@ app.post("/burn", async (req, res) => {
 	fs.mkdirSync(tmp);
 
 	try {
-		const audioPath = `${tmp}/audio.wav`;
+		const originalAudioPath = `${tmp}/audio_original.wav`;
+		const adjustedAudioPath = `${tmp}/audio_adjusted.wav`;
 		const hasSubtitles =
 			typeof subtitles === "string" && subtitles.trim().length > 0;
 		const subPath = `${tmp}/sub.srt`;
 		const assPath = `${tmp}/sub.ass`;
 		const outputPath = `${tmp}/output.mp4`;
 
-		fs.writeFileSync(audioPath, Buffer.from(audio, "base64"));
-		if (hasSubtitles) {
-			fs.writeFileSync(subPath, subtitles);
-		}
+		fs.writeFileSync(originalAudioPath, Buffer.from(audio, "base64"));
 
 		let videoFilePath;
-		let startOffset = 0;
 
 		// If video is not provided, select a random default_ video
 		if (!video) {
@@ -836,15 +939,43 @@ app.post("/burn", async (req, res) => {
 				);
 			video = candidates[Math.floor(Math.random() * candidates.length)];
 			videoFilePath = path.join(runtimeSettings.inputVideosDir, video);
-
-			const videoDuration = await getDuration(videoFilePath);
-			const audioDuration = await getDuration(audioPath);
-			const delta = Math.max(videoDuration - audioDuration - 1, 0);
-			startOffset = delta > 0 ? Math.random() * delta : 0;
 		} else {
 			videoFilePath = path.join(runtimeSettings.inputVideosDir, video);
 			if (!fs.existsSync(videoFilePath))
 				return res.status(404).send("Video file not found");
+		}
+
+		const videoDuration = await getDuration(videoFilePath);
+		const audioDuration = await getDuration(originalAudioPath);
+
+		let audioPathForMux = originalAudioPath;
+		let audioSpeedFactor = 1;
+		if (
+			Number.isFinite(videoDuration) &&
+			videoDuration > 0 &&
+			Number.isFinite(audioDuration) &&
+			audioDuration > 0
+		) {
+			audioSpeedFactor = audioDuration / videoDuration;
+			console.log(
+				`/burn auto-audio-speed factor=${audioSpeedFactor.toFixed(4)} audio=${audioDuration.toFixed(2)}s video=${videoDuration.toFixed(2)}s`,
+			);
+			if (Math.abs(audioSpeedFactor - 1) > 0.01) {
+				const atempoFilter = buildAtempoFilter(audioSpeedFactor);
+				await execPromise(
+					`ffmpeg -y -i "${originalAudioPath}" -filter:a "${atempoFilter}" -vn "${adjustedAudioPath}"`,
+				);
+				audioPathForMux = adjustedAudioPath;
+			}
+		}
+
+		if (hasSubtitles) {
+			const timingScale = audioSpeedFactor > 0 ? 1 / audioSpeedFactor : 1;
+			const subtitlesForBurn =
+				Math.abs(timingScale - 1) > 0.01
+					? scaleSrtSubtitles(subtitles, timingScale)
+					: subtitles;
+			fs.writeFileSync(subPath, subtitlesForBurn);
 		}
 
 		if (hasSubtitles) {
@@ -867,7 +998,7 @@ app.post("/burn", async (req, res) => {
 
 		// Burn subtitles, combine video + audio
 		await execPromise(
-			`ffmpeg -y -ss ${startOffset.toFixed(2)} -i "${videoFilePath}" -i "${audioPath}" ${videoFilter ? `-vf "${videoFilter}"` : ""} -map 0:v:0 -map 1:a:0 -c:v libx264 -c:a aac -shortest "${outputPath}"`,
+			`ffmpeg -y -i "${videoFilePath}" -i "${audioPathForMux}" ${videoFilter ? `-vf "${videoFilter}"` : ""} -map 0:v:0 -map 1:a:0 -c:v libx264 -c:a aac -shortest "${outputPath}"`,
 		);
 
 		if (!fs.existsSync(runtimeSettings.outputVideosDir)) {
@@ -900,7 +1031,11 @@ app.get("/coquiSpeakerId", (req, res) => {
 		process.env.COQUI_LANGUAGE_ID ||
 		LOCALE_LANGUAGE_MAP[String(runtimeSettings.locale || "").toLowerCase()] ||
 		"en";
-	res.json({ speakerId: speakerId || null, languageId });
+	const qualityId =
+		runtimeSettings.coquiQualityId ||
+		process.env.PIPER_QUALITY ||
+		DEFAULT_TTS_QUALITY;
+	res.json({ speakerId: speakerId || null, languageId, qualityId });
 });
 
 app.get("/video-config", (_req, res) => {
@@ -926,6 +1061,7 @@ app.get("/videos/list", (_req, res) => {
 				const stats = fs.statSync(filePath);
 				return {
 					filename,
+					previewUrl: `/api/videos/file/${encodeURIComponent(filename)}`,
 					size: stats.size,
 					createdAt: stats.birthtime.toISOString(),
 					modifiedAt: stats.mtime.toISOString(),
@@ -941,6 +1077,142 @@ app.get("/videos/list", (_req, res) => {
 	} catch (err) {
 		console.error("Failed to list videos:", err);
 		return res.status(500).json({ error: String(err) });
+	}
+});
+
+// List all generated videos in the output directory
+app.get("/videos/generated/list", (_req, res) => {
+	try {
+		ensureDirectoryExists(runtimeSettings.outputVideosDir);
+		const files = fs.readdirSync(runtimeSettings.outputVideosDir);
+		const videos = files
+			.filter((f) => /\.(mp4|mov|mkv|webm)$/i.test(f))
+			.map((filename) => {
+				const filePath = path.join(runtimeSettings.outputVideosDir, filename);
+				const stats = fs.statSync(filePath);
+				return {
+					filename,
+					previewUrl: `/api/videos/generated/file/${encodeURIComponent(filename)}`,
+					size: stats.size,
+					createdAt: stats.birthtime.toISOString(),
+					modifiedAt: stats.mtime.toISOString(),
+				};
+			})
+			.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+		return res.json({
+			videos,
+			totalCount: videos.length,
+			outputDir: runtimeSettings.outputVideosDir,
+		});
+	} catch (err) {
+		console.error("Failed to list generated videos:", err);
+		return res.status(500).json({ error: String(err) });
+	}
+});
+
+app.get("/videos/file/:filename", (req, res) => {
+	try {
+		const { filename } = req.params;
+		const filePath = resolveInputVideoPath(filename, { mustExist: true });
+		return res.sendFile(filePath);
+	} catch (err) {
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to stream video file:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
+	}
+});
+
+app.get("/videos/generated/file/:filename", (req, res) => {
+	try {
+		const { filename } = req.params;
+		const filePath = resolveOutputVideoPath(filename, { mustExist: true });
+		return res.sendFile(filePath);
+	} catch (err) {
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to stream generated video file:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
+	}
+});
+
+app.put("/videos/:filename/rename", (req, res) => {
+	try {
+		const { filename } = req.params;
+		const oldPath = resolveInputVideoPath(filename, { mustExist: true });
+		const oldExt = path.extname(filename).toLowerCase();
+		const newFilename = sanitizeRenameTarget(req.body?.newFilename, oldExt);
+
+		if (newFilename === filename) {
+			return res.status(400).json({
+				error: "New filename is identical to the current filename",
+			});
+		}
+
+		const newPath = resolveInputVideoPath(newFilename);
+		if (fs.existsSync(newPath)) {
+			return res.status(409).json({
+				error: "A video with this filename already exists",
+			});
+		}
+
+		fs.renameSync(oldPath, newPath);
+
+		const stmt = db.prepare(
+			"UPDATE upload_jobs SET filename = ? WHERE filename = ?",
+		);
+		stmt.run(newFilename, filename);
+
+		return res.json({
+			success: true,
+			oldFilename: filename,
+			newFilename,
+		});
+	} catch (err) {
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to rename video:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
+	}
+});
+
+app.put("/videos/generated/:filename/rename", (req, res) => {
+	try {
+		const { filename } = req.params;
+		const oldPath = resolveOutputVideoPath(filename, { mustExist: true });
+		const oldExt = path.extname(filename).toLowerCase();
+		const newFilename = sanitizeRenameTarget(req.body?.newFilename, oldExt);
+
+		if (newFilename === filename) {
+			return res.status(400).json({
+				error: "New filename is identical to the current filename",
+			});
+		}
+
+		const newPath = resolveOutputVideoPath(newFilename);
+		if (fs.existsSync(newPath)) {
+			return res.status(409).json({
+				error: "A generated video with this filename already exists",
+			});
+		}
+
+		fs.renameSync(oldPath, newPath);
+
+		return res.json({
+			success: true,
+			oldFilename: filename,
+			newFilename,
+		});
+	} catch (err) {
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to rename generated video:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
 	}
 });
 
@@ -1011,23 +1283,7 @@ app.get("/jobs/uploads", (req, res) => {
 app.delete("/videos/:filename", (req, res) => {
 	try {
 		const { filename } = req.params;
-
-		// Sanitize filename to prevent directory traversal
-		if (filename.includes("..") || filename.includes("/")) {
-			return res.status(400).json({ error: "Invalid filename" });
-		}
-
-		const filePath = path.join(runtimeSettings.inputVideosDir, filename);
-		const realPath = fs.realpathSync(runtimeSettings.inputVideosDir);
-
-		// Ensure the file is within the input directory
-		if (!fs.realpathSync(filePath).startsWith(realPath)) {
-			return res.status(400).json({ error: "Invalid filename" });
-		}
-
-		if (!fs.existsSync(filePath)) {
-			return res.status(404).json({ error: "Video file not found" });
-		}
+		const filePath = resolveInputVideoPath(filename, { mustExist: true });
 
 		// Delete the file
 		fs.unlinkSync(filePath);
@@ -1041,8 +1297,30 @@ app.delete("/videos/:filename", (req, res) => {
 			message: `Deleted ${filename}`,
 		});
 	} catch (err) {
-		console.error("Failed to delete video:", err);
-		return res.status(500).json({ error: String(err) });
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to delete video:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
+	}
+});
+
+app.delete("/videos/generated/:filename", (req, res) => {
+	try {
+		const { filename } = req.params;
+		const filePath = resolveOutputVideoPath(filename, { mustExist: true });
+		fs.unlinkSync(filePath);
+
+		return res.json({
+			success: true,
+			message: `Deleted generated video ${filename}`,
+		});
+	} catch (err) {
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to delete generated video:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
 	}
 });
 
@@ -1059,6 +1337,78 @@ async function getDuration(filePath) {
 		`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
 	);
 	return parseFloat(stdout.trim());
+}
+
+function buildAtempoFilter(speedFactor) {
+	let remaining = Number(speedFactor);
+	if (!Number.isFinite(remaining) || remaining <= 0) {
+		return "atempo=1.0";
+	}
+
+	const filters = [];
+	while (remaining > 2.0) {
+		filters.push("atempo=2.0");
+		remaining /= 2.0;
+	}
+	while (remaining < 0.5) {
+		filters.push("atempo=0.5");
+		remaining /= 0.5;
+	}
+	filters.push(`atempo=${remaining.toFixed(6)}`);
+	return filters.join(",");
+}
+
+function parseSrtTimestampToMs(value) {
+	const match = String(value || "")
+		.trim()
+		.match(/^(\d{2}):(\d{2}):(\d{2}),(\d{3})$/);
+	if (!match) return null;
+	const [, hh, mm, ss, ms] = match;
+	return (
+		Number(hh) * 60 * 60 * 1000 +
+		Number(mm) * 60 * 1000 +
+		Number(ss) * 1000 +
+		Number(ms)
+	);
+}
+
+function formatSrtTimestampFromMs(totalMs) {
+	const normalized = Math.max(0, Math.floor(totalMs));
+	const hh = Math.floor(normalized / 3600000);
+	const mm = Math.floor((normalized % 3600000) / 60000);
+	const ss = Math.floor((normalized % 60000) / 1000);
+	const ms = normalized % 1000;
+	const hhStr = String(hh).padStart(2, "0");
+	const mmStr = String(mm).padStart(2, "0");
+	const ssStr = String(ss).padStart(2, "0");
+	const msStr = String(ms).padStart(3, "0");
+	return `${hhStr}:${mmStr}:${ssStr},${msStr}`;
+}
+
+function scaleSrtSubtitles(srt, scale) {
+	const factor = Number(scale);
+	if (!Number.isFinite(factor) || factor <= 0) {
+		return srt;
+	}
+
+	return String(srt).replace(
+		/(\d{2}:\d{2}:\d{2},\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2},\d{3})(.*)/g,
+		(_full, start, end, suffix) => {
+			const startMs = parseSrtTimestampToMs(start);
+			const endMs = parseSrtTimestampToMs(end);
+			if (startMs === null || endMs === null) {
+				return `${start} --> ${end}${suffix || ""}`;
+			}
+
+			const scaledStart = Math.max(0, Math.round(startMs * factor));
+			let scaledEnd = Math.max(0, Math.round(endMs * factor));
+			if (scaledEnd <= scaledStart) {
+				scaledEnd = scaledStart + 1;
+			}
+
+			return `${formatSrtTimestampFromMs(scaledStart)} --> ${formatSrtTimestampFromMs(scaledEnd)}${suffix || ""}`;
+		},
+	);
 }
 
 function cleanup(folder) {

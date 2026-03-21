@@ -18,17 +18,16 @@
 			rel="stylesheet" />
 		<style>
 			:root {
-				--bg-1: #fff7e8;
-				--bg-2: #ebf7f4;
-				--ink: #152126;
-				--muted: #5c6b70;
-				--card: #ffffff;
-				--line: #d8e2e0;
-				--accent: #0a8f77;
-				--accent-dark: #056a58;
-				--accent-soft: #d5f4ee;
-				--warning: #ef7f3b;
-				--radius: 16px;
+				--bg: #f5f6ef;
+				--bg-soft: #e9f2ec;
+				--paper: #ffffff;
+				--ink: #162325;
+				--muted: #526265;
+				--line: #ccdad4;
+				--primary: #0b8c74;
+				--primary-dark: #076453;
+				--primary-soft: #d7efe8;
+				--radius: 18px;
 			}
 
 			* {
@@ -40,62 +39,75 @@
 				font-family: "DM Sans", sans-serif;
 				color: var(--ink);
 				background:
-					radial-gradient(circle at 10% 0%, var(--bg-1), transparent 42%),
-					radial-gradient(circle at 90% 100%, var(--bg-2), transparent 45%),
-					#f9fcfb;
+					radial-gradient(circle at 0% 0%, #f8e6c8, transparent 38%),
+					radial-gradient(circle at 100% 100%, #d8ece7, transparent 45%),
+					var(--bg);
 				min-height: 100vh;
 			}
 
 			.page-wrap {
-				padding: 0.9rem;
-				max-width: 1200px;
+				padding: 0.9rem 0.8rem 4.2rem;
+				max-width: 1120px;
 				margin: 0 auto;
+				display: grid;
+				gap: 0.75rem;
 			}
 
 			.hero {
-				background: linear-gradient(130deg, #0f2f36 0%, #126a66 80%);
+				background: linear-gradient(136deg, #0f2f36 0%, #116660 75%);
 				color: #fff;
 				border-radius: var(--radius);
-				padding: 1rem;
+				padding: 1.1rem;
 				box-shadow: 0 14px 28px rgba(14, 48, 54, 0.18);
 				position: relative;
 				overflow: hidden;
+				animation: fadeSlide 0.45s ease both;
 			}
 
 			.hero::after {
 				content: "";
 				position: absolute;
-				right: -30px;
-				top: -30px;
-				width: 150px;
-				height: 150px;
+				right: -42px;
+				top: -42px;
+				width: 190px;
+				height: 190px;
 				border-radius: 50%;
-				background: rgba(255, 255, 255, 0.13);
+				background: rgba(255, 255, 255, 0.11);
 			}
 
 			.hero h1 {
 				font-family: "Space Grotesk", sans-serif;
-				font-size: 1.25rem;
+				font-size: 1.34rem;
 				margin: 0;
 			}
 
 			.hero p {
-				margin: 0.45rem 0 0;
-				font-size: 0.92rem;
+				margin: 0.45rem 0 0.6rem;
+				font-size: 0.95rem;
 				opacity: 0.92;
 			}
 
-			.shell {
-				display: grid;
-				gap: 0.8rem;
-				margin-top: 0.8rem;
+			.quick-hints {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+			}
+
+			.hint-pill {
+				padding: 0.22rem 0.6rem;
+				border-radius: 999px;
+				font-size: 0.75rem;
+				font-weight: 700;
+				letter-spacing: 0.02em;
+				background: rgba(255, 255, 255, 0.14);
+				border: 1px solid rgba(255, 255, 255, 0.26);
 			}
 
 			.panel {
-				background: var(--card);
+				background: var(--paper);
 				border: 1px solid var(--line);
 				border-radius: var(--radius);
-				padding: 0.9rem;
+				padding: 1rem;
 				box-shadow: 0 10px 24px rgba(14, 43, 44, 0.05);
 				animation: fadeSlide 0.45s ease both;
 			}
@@ -103,38 +115,59 @@
 			.panel h2,
 			.panel h3 {
 				font-family: "Space Grotesk", sans-serif;
-				font-size: 1rem;
+				font-size: 1.08rem;
 				margin: 0 0 0.75rem;
 			}
 
-			.quick-tools {
+			.quick-tools,
+			.form-grid,
+			.library-panels {
 				display: grid;
 				grid-template-columns: 1fr;
-				gap: 0.55rem;
+				gap: 0.62rem;
 			}
 
 			.step-label {
 				display: inline-block;
-				font-size: 0.74rem;
+				font-size: 0.76rem;
 				font-weight: 700;
 				letter-spacing: 0.04em;
 				text-transform: uppercase;
-				padding: 0.2rem 0.5rem;
+				padding: 0.23rem 0.62rem;
 				border-radius: 999px;
-				background: var(--accent-soft);
-				color: var(--accent-dark);
+				background: var(--primary-soft);
+				color: var(--primary-dark);
 				margin-bottom: 0.55rem;
 			}
 
+			.form-label {
+				font-size: 0.86rem;
+				font-weight: 700;
+				color: #203034;
+			}
+
+			.form-control,
+			.form-select,
+			.btn {
+				min-height: 47px;
+				border-radius: 12px;
+			}
+
+			.form-control,
+			.form-select {
+				font-size: 0.97rem;
+			}
+
 			.btn-primary {
-				background-color: var(--accent);
-				border-color: var(--accent);
+				background-color: var(--primary);
+				border-color: var(--primary);
+				font-weight: 700;
 			}
 
 			.btn-primary:hover,
 			.btn-primary:focus-visible {
-				background-color: var(--accent-dark);
-				border-color: var(--accent-dark);
+				background-color: var(--primary-dark);
+				border-color: var(--primary-dark);
 			}
 
 			.btn-outline-dark {
@@ -147,16 +180,48 @@
 				color: #fff;
 			}
 
-			.orient-grid {
-				display: grid;
-				grid-template-columns: 1fr;
-				gap: 0.55rem;
-			}
-
+			.orient-grid,
 			.custom-size-grid {
 				display: grid;
 				grid-template-columns: 1fr;
-				gap: 0.55rem;
+				gap: 0.6rem;
+			}
+
+			details.advanced-settings {
+				margin-top: 0.7rem;
+				border: 1px dashed #bcd2cb;
+				border-radius: 12px;
+				padding: 0.55rem 0.62rem;
+				background: var(--bg-soft);
+			}
+
+			details.advanced-settings summary {
+				cursor: pointer;
+				list-style: none;
+				font-weight: 700;
+				font-size: 0.86rem;
+				color: #27444a;
+			}
+
+			details.advanced-settings summary::-webkit-details-marker {
+				display: none;
+			}
+
+			details.advanced-settings summary::after {
+				content: "+";
+				float: right;
+				font-size: 1rem;
+				line-height: 1;
+			}
+
+			details.advanced-settings[open] summary::after {
+				content: "-";
+			}
+
+			.helper-text {
+				font-size: 0.83rem;
+				color: var(--muted);
+				margin-top: 0.5rem;
 			}
 
 			#card-grid {
@@ -165,7 +230,7 @@
 			}
 
 			#card-grid:empty::before {
-				content: "No jobs yet. Start from Step 1 above.";
+				content: "No jobs yet. Pick voice, add a topic, and tap Generate.";
 				display: block;
 				padding: 0.8rem;
 				text-align: center;
@@ -178,7 +243,7 @@
 			.card-tile {
 				border: 1px solid var(--line);
 				border-radius: 12px;
-				padding: 0.75rem;
+				padding: 0.82rem;
 				background: #fff;
 			}
 
@@ -195,7 +260,7 @@
 			}
 
 			.script-editor {
-				min-height: 140px;
+				min-height: 154px;
 				font-size: 0.88rem;
 			}
 
@@ -222,6 +287,34 @@
 				justify-content: center;
 				font-size: 0.8rem;
 				color: #58706f;
+				overflow: hidden;
+			}
+
+			.preview-video {
+				display: block;
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+				background: #000;
+			}
+
+			.video-actions {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 0.45rem;
+				margin-top: 0.55rem;
+			}
+
+			.video-actions .btn,
+			.download-video-btn {
+				min-height: 38px;
+				font-size: 0.78rem;
+				padding: 0.32rem 0.42rem;
+			}
+
+			.library-tabs .nav-link {
+				font-size: 0.86rem;
+				font-weight: 600;
 			}
 
 			.preview-meta {
@@ -265,11 +358,17 @@
 
 			@media (min-width: 760px) {
 				.page-wrap {
-					padding: 1.1rem;
+					padding: 1.1rem 1.1rem 1.5rem;
+					gap: 0.9rem;
 				}
 
 				.quick-tools {
-					grid-template-columns: repeat(2, minmax(0, 1fr));
+					grid-template-columns: repeat(3, minmax(0, 1fr));
+				}
+
+				.form-grid {
+					grid-template-columns: 1.2fr minmax(0, 1fr);
+					align-items: start;
 				}
 
 				.orient-grid {
@@ -286,14 +385,8 @@
 			}
 
 			@media (min-width: 1024px) {
-				.shell {
-					grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-					align-items: start;
-				}
-
-				.panel-sticky {
-					position: sticky;
-					top: 0.8rem;
+				.library-panels {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
 				}
 
 				.preview-grid {
@@ -318,87 +411,230 @@
 		<div class="page-wrap">
 			<header class="hero">
 				<h1>Viral Faceless Shorts Generator</h1>
-				<p>Create, voice, and render from one flow.</p>
+				<p>Simple flow: pick a voice, write your topic, then tap generate.</p>
+				<div class="quick-hints">
+					<span class="hint-pill">Mobile-first</span>
+					<span class="hint-pill">Big buttons</span>
+					<span class="hint-pill">4-step workflow</span>
+				</div>
 			</header>
 
-			<div class="shell">
-				<main class="d-grid gap-2">
-					<section class="panel">
-						<span class="step-label">Step 1</span>
-						<h2>Create Script From Prompt</h2>
-						<label for="scriptPrompt" class="form-label">Prompt</label>
-						<textarea
-							class="form-control"
-							id="scriptPrompt"
-							rows="4"
-							placeholder="Example: 5 little-known AI tools that save creators 3+ hours per day."></textarea>
+			<section class="panel">
+				<span class="step-label">Step 1</span>
+				<h2>Pick Voice</h2>
+				<p class="helper-text mt-0">
+					Choose language and voice once, then create videos quickly.
+				</p>
+				<div class="quick-tools">
+					<div>
+						<label for="languageSelect" class="form-label">Language</label>
+						<select id="languageSelect" class="form-select" disabled>
+							<option>Lang...</option>
+						</select>
+					</div>
+					<div>
+						<label for="qualitySelect" class="form-label">Quality</label>
+						<select id="qualitySelect" class="form-select" disabled>
+							<option>Quality...</option>
+						</select>
+					</div>
+					<div>
+						<label for="voiceSelect" class="form-label">Voice</label>
+						<select id="voiceSelect" class="form-select" disabled>
+							<option>Loading voices...</option>
+						</select>
+					</div>
+				</div>
+				<div class="quick-tools mt-2">
+					<button
+						class="btn btn-outline-secondary"
+						id="previewVoiceBtn"
+						disabled>
+						Preview Voice
+					</button>
+					<button
+						class="btn btn-outline-dark"
+						id="openSettingsBtn"
+						data-bs-toggle="modal"
+						data-bs-target="#settingsModal">
+						Settings
+					</button>
+				</div>
+			</section>
 
-						<div class="orient-grid mt-2">
-							<div>
-								<label for="orientationSelect" class="form-label"
-									>Orientation</label
-								>
-								<select id="orientationSelect" class="form-select">
-									<option value="portrait">Portrait (9:16)</option>
-									<option value="landscape">Landscape (16:9)</option>
-									<option value="square">Square (1:1)</option>
-									<option value="original">Original (source video)</option>
-									<option value="custom">Custom</option>
-								</select>
-							</div>
-							<div class="d-flex align-items-end">
-								<div class="form-check mb-2">
-									<input
-										class="form-check-input"
-										type="checkbox"
-										id="includeSubtitles"
-										checked />
-									<label class="form-check-label" for="includeSubtitles">
-										Include subtitles
-									</label>
+			<section class="panel">
+				<span class="step-label">Step 2</span>
+				<h2>Write Script</h2>
+				<div class="form-grid">
+					<div>
+						<label for="scriptSource" class="form-label"
+							>How do you want to write?</label
+						>
+						<select id="scriptSource" class="form-select">
+							<option value="gemini">AI writes from a topic</option>
+							<option value="direct">I paste my own script</option>
+						</select>
+
+						<div id="scriptPromptGroup" class="mt-2">
+							<label for="scriptPrompt" class="form-label">Topic or idea</label>
+							<textarea
+								class="form-control"
+								id="scriptPrompt"
+								rows="5"
+								placeholder="Example: 5 easy gardening hacks for beginners."></textarea>
+						</div>
+
+						<div id="directScriptGroup" class="mt-2 d-none">
+							<label for="directScript" class="form-label"
+								>Your full script</label
+							>
+							<textarea
+								class="form-control"
+								id="directScript"
+								rows="7"
+								placeholder="Paste your final script here."></textarea>
+						</div>
+					</div>
+
+					<div>
+						<details class="advanced-settings">
+							<summary>Video options (advanced)</summary>
+							<div class="orient-grid mt-2">
+								<div>
+									<label for="orientationSelect" class="form-label"
+										>Video shape</label
+									>
+									<select id="orientationSelect" class="form-select">
+										<option value="portrait">Portrait (9:16)</option>
+										<option value="landscape">Landscape (16:9)</option>
+										<option value="square">Square (1:1)</option>
+										<option value="original">Original (source video)</option>
+										<option value="custom">Custom</option>
+									</select>
+								</div>
+								<div class="d-flex align-items-end">
+									<div class="form-check mb-2">
+										<input
+											class="form-check-input"
+											type="checkbox"
+											id="includeSubtitles"
+											checked />
+										<label class="form-check-label" for="includeSubtitles">
+											Add subtitles
+										</label>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						<div class="custom-size-grid mt-1">
-							<div class="d-none" id="customWidthGroup">
-								<label for="customWidth" class="form-label">Custom Width</label>
-								<input
-									id="customWidth"
-									type="number"
-									min="1"
-									class="form-control"
-									placeholder="1080" />
+							<div class="custom-size-grid mt-1">
+								<div class="d-none" id="customWidthGroup">
+									<label for="customWidth" class="form-label"
+										>Custom width</label
+									>
+									<input
+										id="customWidth"
+										type="number"
+										min="1"
+										class="form-control"
+										placeholder="1080" />
+								</div>
+								<div class="d-none" id="customHeightGroup">
+									<label for="customHeight" class="form-label"
+										>Custom height</label
+									>
+									<input
+										id="customHeight"
+										type="number"
+										min="1"
+										class="form-control"
+										placeholder="1920" />
+								</div>
 							</div>
-							<div class="d-none" id="customHeightGroup">
-								<label for="customHeight" class="form-label"
-									>Custom Height</label
-								>
-								<input
-									id="customHeight"
-									type="number"
-									min="1"
-									class="form-control"
-									placeholder="1920" />
+						</details>
+
+						<p class="helper-text">
+							Tip: leave advanced options closed for the easiest setup.
+						</p>
+					</div>
+				</div>
+
+				<div class="d-grid mt-2">
+					<button
+						class="btn btn-primary"
+						id="generateScriptBtn"
+						onclick="startPromptWorkflow()">
+						Generate Script
+					</button>
+				</div>
+			</section>
+
+			<section class="panel">
+				<span class="step-label">Step 3</span>
+				<h3>Current Jobs</h3>
+				<p class="helper-text mt-0">
+					New jobs appear here. Approve each script to continue.
+				</p>
+				<div id="card-grid"></div>
+			</section>
+
+			<section class="panel">
+				<span class="step-label">Step 4</span>
+				<h3>Video Library</h3>
+				<ul class="nav nav-tabs library-tabs" role="tablist">
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link active"
+							id="generated-videos-tab"
+							data-bs-toggle="tab"
+							data-bs-target="#generated-videos-pane"
+							type="button"
+							role="tab"
+							aria-controls="generated-videos-pane"
+							aria-selected="true">
+							Generated
+						</button>
+					</li>
+					<li class="nav-item" role="presentation">
+						<button
+							class="nav-link"
+							id="uploaded-videos-tab"
+							data-bs-toggle="tab"
+							data-bs-target="#uploaded-videos-pane"
+							type="button"
+							role="tab"
+							aria-controls="uploaded-videos-pane"
+							aria-selected="false">
+							Uploaded
+						</button>
+					</li>
+				</ul>
+				<div class="tab-content pt-2">
+					<div
+						class="tab-pane fade show active"
+						id="generated-videos-pane"
+						role="tabpanel"
+						aria-labelledby="generated-videos-tab"
+						tabindex="0">
+						<div class="preview-grid" id="generatedVideosGrid">
+							<div
+								style="
+									grid-column: 1/-1;
+									text-align: center;
+									padding: 2rem;
+									color: #5c6b70;
+								">
+								<p style="margin: 0; font-size: 0.92rem">
+									No generated videos yet. Render one from a job above.
+								</p>
 							</div>
 						</div>
-
-						<div class="d-grid mt-2">
-							<button class="btn btn-primary" onclick="startPromptWorkflow()">
-								Generate Script
-							</button>
-						</div>
-					</section>
-
-					<section class="panel">
-						<span class="step-label">Step 2</span>
-						<h3>Current Jobs</h3>
-						<div id="card-grid"></div>
-					</section>
-
-					<section class="panel">
-						<span class="step-label">Library</span>
-						<h3>Uploaded Videos</h3>
+					</div>
+					<div
+						class="tab-pane fade"
+						id="uploaded-videos-pane"
+						role="tabpanel"
+						aria-labelledby="uploaded-videos-tab"
+						tabindex="0">
 						<div class="preview-grid" id="uploadedVideosGrid">
 							<div
 								style="
@@ -411,76 +647,10 @@
 									No uploaded videos yet. Upload videos in Settings.
 								</p>
 							</div>
-							<article class="preview-card">
-								<div class="preview-frame">Generated preview 1</div>
-								<div class="preview-meta">`ai-tools-hustle-cut.mp4`</div>
-								<div class="tag-row">
-									<span class="tag-chip">#ai</span>
-									<span class="tag-chip">#productivity</span>
-									<span class="tag-chip">#creator</span>
-								</div>
-								<button
-									type="button"
-									class="btn btn-sm btn-outline-secondary copy-tags-btn copy-tag-btn"
-									data-tags="#ai #productivity #creator">
-									Copy Tags
-								</button>
-							</article>
-							<article class="preview-card">
-								<div class="preview-frame">Generated preview 2</div>
-								<div class="preview-meta">`mindset-5-facts-short.mp4`</div>
-								<div class="tag-row">
-									<span class="tag-chip">#mindset</span>
-									<span class="tag-chip">#shorts</span>
-									<span class="tag-chip">#dailyhabits</span>
-								</div>
-								<button
-									type="button"
-									class="btn btn-sm btn-outline-secondary copy-tags-btn copy-tag-btn"
-									data-tags="#mindset #shorts #dailyhabits">
-									Copy Tags
-								</button>
-							</article>
 						</div>
-					</section>
-				</main>
-
-				<aside class="d-grid gap-2 panel-sticky">
-					<section class="panel">
-						<span class="step-label">Step 0</span>
-						<h3>Voice + Quick Actions</h3>
-						<div class="quick-tools">
-							<div>
-								<label for="languageSelect" class="form-label">Language</label>
-								<select id="languageSelect" class="form-select" disabled>
-									<option>Lang...</option>
-								</select>
-							</div>
-							<div>
-								<label for="voiceSelect" class="form-label">Voice</label>
-								<select id="voiceSelect" class="form-select" disabled>
-									<option>Loading voices...</option>
-								</select>
-							</div>
-						</div>
-						<div class="d-grid gap-2 mt-2">
-							<button
-								class="btn btn-outline-secondary"
-								id="previewVoiceBtn"
-								disabled>
-								Preview Voice
-							</button>
-							<button
-								class="btn btn-outline-dark"
-								id="openSettingsBtn"
-								data-bs-toggle="modal"
-								data-bs-target="#settingsModal">
-								Settings
-							</button>
-						</div>
-					</section>
-				</aside>
-			</div>
+					</div>
+				</div>
+			</section>
 
 			<div
 				class="modal fade"
@@ -653,6 +823,7 @@
 			const cardGrid = document.getElementById("card-grid");
 			const toastContainer = document.getElementById("toast-container");
 			const languageSelect = document.getElementById("languageSelect");
+			const qualitySelect = document.getElementById("qualitySelect");
 			const voiceSelect = document.getElementById("voiceSelect");
 			const previewVoiceBtn = document.getElementById("previewVoiceBtn");
 			const orientationSelect = document.getElementById("orientationSelect");
@@ -688,6 +859,12 @@
 			const customHeightInput = document.getElementById("customHeight");
 			const customWidthGroup = document.getElementById("customWidthGroup");
 			const customHeightGroup = document.getElementById("customHeightGroup");
+			const scriptSourceSelect = document.getElementById("scriptSource");
+			const scriptPromptInput = document.getElementById("scriptPrompt");
+			const scriptPromptGroup = document.getElementById("scriptPromptGroup");
+			const directScriptInput = document.getElementById("directScript");
+			const directScriptGroup = document.getElementById("directScriptGroup");
+			const generateScriptBtn = document.getElementById("generateScriptBtn");
 			const PREVIEW_TEXT =
 				"This is a sample voice preview for your next faceless short video.";
 
@@ -698,7 +875,9 @@
 				alignLock = false,
 				burnLock = false;
 			let speaker_id = undefined;
-			let language_id = "en";
+			let language_id = "";
+			let quality_id = "";
+			let availableVoiceOptions = [];
 			let isPreviewPlaying = false;
 			let previewAudioUrl = null;
 			const previewAudio = new Audio();
@@ -756,14 +935,16 @@
 				}
 			}
 
-			function createCard(id, promptText) {
+			function createCard(id, inputText, source = "gemini") {
+				const sourceLabel = source === "direct" ? "Custom Script" : "AI Topic";
+				const previewLabel = source === "direct" ? "Script" : "Topic";
 				const card = document.createElement("div");
 				card.id = id;
 				card.className = "card-tile";
 				card.innerHTML = `
-        <h6>Prompt Workflow</h6>
+        <h6>${sourceLabel}</h6>
         <p></p>
-        <div class="mb-2 text-muted" style="font-size: 0.8rem;">Prompt: <span class="prompt-preview"></span></div>
+		<div class="mb-2 text-muted" style="font-size: 0.8rem;">${previewLabel}: <span class="prompt-preview"></span></div>
 				<div class="mb-2 text-muted orientation-preview" style="font-size: 0.8rem;"></div>
         <div class="script-container d-none">
           <label class="form-label mb-1" style="font-size: 0.82rem;">Script (editable before approval)</label>
@@ -776,8 +957,45 @@
         <div class="status-label mt-1 text-muted" style="font-size: 0.8rem;">Queued...</div>
       `;
 
-				card.querySelector(".prompt-preview").textContent = promptText;
+				card.querySelector(".prompt-preview").textContent = inputText;
 				cardGrid.appendChild(card);
+			}
+
+			function truncatePreviewText(value, maxLength = 120) {
+				const text = String(value || "")
+					.replace(/\s+/g, " ")
+					.trim();
+				if (!text) return "";
+				if (text.length <= maxLength) return text;
+				return `${text.slice(0, maxLength)}...`;
+			}
+
+			function updateScriptSourceInputs() {
+				const source =
+					scriptSourceSelect?.value === "direct" ? "direct" : "gemini";
+				const usingDirectScript = source === "direct";
+
+				scriptPromptGroup.classList.toggle("d-none", usingDirectScript);
+				directScriptGroup.classList.toggle("d-none", !usingDirectScript);
+				generateScriptBtn.textContent = usingDirectScript
+					? "Use My Script"
+					: "Generate Script";
+			}
+
+			function buildDirectScriptPayload(scriptText) {
+				const lines = String(scriptText || "")
+					.split(/\r?\n/)
+					.map((line) => line.trim())
+					.filter(Boolean);
+				const fallbackTitle = "Direct Script";
+				const title = lines[0]
+					? truncatePreviewText(lines[0], 80)
+					: fallbackTitle;
+				return {
+					title,
+					description: "Using direct script input",
+					body: scriptText,
+				};
 			}
 
 			function formatOrientationText(settings) {
@@ -943,16 +1161,25 @@
 					title: generated.title || "Generated Script",
 					description: generated.description || "",
 					progress: 35,
-					label: "Script generated. Review and approve.",
+					label: "Script ready. Review and tap Approve.",
 				});
 
 				renderApprovalUI(id, generated, orientationSettings);
 			}
 
 			async function startPromptWorkflow() {
-				const prompt = document.getElementById("scriptPrompt").value.trim();
-				if (!prompt) {
-					showToast("Please enter a prompt");
+				const source =
+					scriptSourceSelect?.value === "direct" ? "direct" : "gemini";
+				const prompt = scriptPromptInput.value.trim();
+				const directScript = directScriptInput.value.trim();
+
+				if (source === "gemini" && !prompt) {
+					showToast("Please type a topic first");
+					return;
+				}
+
+				if (source === "direct" && !directScript) {
+					showToast("Please paste your script first");
 					return;
 				}
 
@@ -969,7 +1196,10 @@
 				}
 
 				const id = generateId();
-				createCard(id, prompt);
+				const inputPreview = truncatePreviewText(
+					source === "direct" ? directScript : prompt,
+				);
+				createCard(id, inputPreview, source);
 				const card = document.getElementById(id);
 				if (card) {
 					const orientationPreview = card.querySelector(".orientation-preview");
@@ -977,11 +1207,26 @@
 						orientationPreview.textContent = `${formatOrientationText(orientationSettings)} | ${formatSubtitlesText({ includeSubtitles })}`;
 					}
 				}
-				await runGenerationForCard(id, prompt, {
+				const workflowSettings = {
 					...orientationSettings,
 					includeSubtitles,
-				});
-				document.getElementById("scriptPrompt").value = "";
+				};
+
+				if (source === "direct") {
+					const generated = buildDirectScriptPayload(directScript);
+					updateCard(id, {
+						title: generated.title,
+						description: generated.description,
+						progress: 35,
+						label: "Script ready. Review and tap Approve.",
+					});
+					renderApprovalUI(id, generated, workflowSettings);
+					directScriptInput.value = "";
+					return;
+				}
+
+				await runGenerationForCard(id, prompt, workflowSettings);
+				scriptPromptInput.value = "";
 			}
 
 			function renderApprovalUI(id, generated, orientationSettings) {
@@ -1017,7 +1262,7 @@
 					clearRetryButton(id);
 					updateCard(id, {
 						progress: 45,
-						label: "Script approved. Generating TTS...",
+						label: "Approved. Creating voice audio...",
 					});
 
 					processTTS();
@@ -1032,7 +1277,7 @@
 
 				const { id, generated } = ttsQueue.shift();
 				clearRetryButton(id);
-				updateCard(id, { progress: 55, label: "Generating TTS..." });
+				updateCard(id, { progress: 55, label: "Creating voice audio..." });
 
 				let ttsAudio;
 				try {
@@ -1071,11 +1316,11 @@
 					});
 					updateCard(id, {
 						progress: 85,
-						label: "TTS ready. Rendering video...",
+						label: "Voice ready. Rendering video...",
 					});
 				} else {
 					alignQueue.push({ id, generated, ttsAudio });
-					updateCard(id, { progress: 65, label: "TTS generated" });
+					updateCard(id, { progress: 65, label: "Voice audio created" });
 				}
 
 				ttsLock = false;
@@ -1185,6 +1430,7 @@
 					title,
 				});
 				clearRetryButton(id);
+				refreshGeneratedVideosList();
 
 				burnLock = false;
 				processBurn();
@@ -1269,10 +1515,62 @@
 					: "Preview Voice";
 			}
 
-			function populateVoiceSelect(speakers, selectedSpeaker) {
+			function languageLabelForVoice(voice) {
+				const nativeName = String(voice?.languageNameNative || "").trim();
+				const englishName = String(voice?.languageNameEnglish || "").trim();
+				const code = String(voice?.languageCode || "").trim();
+				if (nativeName && englishName && nativeName !== englishName) {
+					return `${englishName} (${nativeName}) [${code}]`;
+				}
+				if (englishName) {
+					return `${englishName} [${code}]`;
+				}
+				return code;
+			}
+
+			function getAvailableLanguages() {
+				const byCode = new Map();
+				for (const voice of availableVoiceOptions) {
+					if (!voice?.languageCode) continue;
+					if (!byCode.has(voice.languageCode)) {
+						byCode.set(voice.languageCode, {
+							code: voice.languageCode,
+							label: languageLabelForVoice(voice),
+						});
+					}
+				}
+				return [...byCode.values()].sort((a, b) =>
+					a.label.localeCompare(b.label),
+				);
+			}
+
+			function getAvailableQualities(languageCode) {
+				const options = availableVoiceOptions.filter((voice) => {
+					if (!languageCode) return true;
+					return voice.languageCode === languageCode;
+				});
+				const qualities = [...new Set(options.map((voice) => voice.quality))];
+				return qualities.sort((a, b) => a.localeCompare(b));
+			}
+
+			function getAvailableVoices(languageCode, quality) {
+				return availableVoiceOptions
+					.filter((voice) => {
+						if (languageCode && voice.languageCode !== languageCode) {
+							return false;
+						}
+						if (quality && voice.quality !== quality) {
+							return false;
+						}
+						return true;
+					})
+					.sort((a, b) => a.name.localeCompare(b.name));
+			}
+
+			function populateVoiceSelect(voices, selectedSpeakerKey) {
 				voiceSelect.innerHTML = "";
 
-				if (!Array.isArray(speakers) || speakers.length === 0) {
+				if (!Array.isArray(voices) || voices.length === 0) {
 					voiceSelect.innerHTML = `<option value="">No voices found</option>`;
 					voiceSelect.disabled = true;
 					speaker_id = undefined;
@@ -1280,11 +1578,11 @@
 					return;
 				}
 
-				speakers.forEach((speaker) => {
+				voices.forEach((voice) => {
 					const option = document.createElement("option");
-					option.value = speaker;
-					option.textContent = speaker;
-					if (speaker === selectedSpeaker) {
+					option.value = voice.key;
+					option.textContent = voice.name;
+					if (voice.key === selectedSpeakerKey) {
 						option.selected = true;
 					}
 					voiceSelect.appendChild(option);
@@ -1299,35 +1597,61 @@
 				languageSelect.innerHTML = "";
 
 				if (!Array.isArray(languages) || languages.length === 0) {
-					languageSelect.innerHTML = `<option value="en">en</option>`;
+					languageSelect.innerHTML = `<option value="">No languages</option>`;
 					languageSelect.disabled = true;
-					language_id = "en";
+					language_id = "";
 					return;
 				}
 
 				languages.forEach((lang) => {
 					const option = document.createElement("option");
-					option.value = lang;
-					option.textContent = lang;
-					if (lang === selectedLanguage) option.selected = true;
+					option.value = lang.code;
+					option.textContent = lang.label;
+					if (lang.code === selectedLanguage) option.selected = true;
 					languageSelect.appendChild(option);
 				});
 
-				if (!languages.includes(selectedLanguage)) {
-					languageSelect.value = languages[0];
+				if (!languages.some((lang) => lang.code === selectedLanguage)) {
+					languageSelect.value = languages[0].code;
 				}
 
 				language_id = languageSelect.value;
 				languageSelect.disabled = false;
 			}
 
-			async function fetchSpeakers() {
-				const res = await fetch("/api/speakers");
+			function populateQualitySelect(qualities, selectedQuality) {
+				qualitySelect.innerHTML = "";
+
+				if (!Array.isArray(qualities) || qualities.length === 0) {
+					qualitySelect.innerHTML = `<option value="">No quality</option>`;
+					qualitySelect.disabled = true;
+					quality_id = "";
+					return;
+				}
+
+				qualities.forEach((quality) => {
+					const option = document.createElement("option");
+					option.value = quality;
+					option.textContent = quality;
+					if (quality === selectedQuality) option.selected = true;
+					qualitySelect.appendChild(option);
+				});
+
+				if (!qualities.includes(selectedQuality)) {
+					qualitySelect.value = qualities[0];
+				}
+
+				quality_id = qualitySelect.value;
+				qualitySelect.disabled = false;
+			}
+
+			async function fetchVoiceOptions() {
+				const res = await fetch("/api/voices");
 				if (!res.ok) {
-					throw await buildHttpError(res, "Failed to fetch voices");
+					throw await buildHttpError(res, "Failed to fetch voice catalog");
 				}
 				const data = await res.json();
-				return Array.isArray(data?.speakers) ? data.speakers : [];
+				return Array.isArray(data?.voices) ? data.voices : [];
 			}
 
 			async function fetchDefaultSpeakerId() {
@@ -1339,6 +1663,7 @@
 				return {
 					speakerId: data?.speakerId,
 					languageId: data?.languageId,
+					qualityId: data?.qualityId,
 				};
 			}
 
@@ -1439,6 +1764,7 @@
 
 					await initOrientationPicker();
 					await initVoicePicker();
+					await refreshVideoLibraries();
 					showToast("Settings saved");
 
 					const modal = bootstrap.Modal.getInstance(settingsModalEl);
@@ -1451,34 +1777,59 @@
 				}
 			}
 
-			async function fetchLanguages() {
-				const res = await fetch("/api/languages");
-				if (!res.ok) {
-					throw await buildHttpError(res, "Failed to fetch languages");
-				}
-				const data = await res.json();
-				return Array.isArray(data?.languages) ? data.languages : [];
-			}
-
 			async function initVoicePicker() {
 				try {
-					const [speakers, defaults, languages] = await Promise.all([
-						fetchSpeakers(),
+					const [voices, defaults] = await Promise.all([
+						fetchVoiceOptions(),
 						fetchDefaultSpeakerId(),
-						fetchLanguages(),
 					]);
+					availableVoiceOptions = voices.filter(
+						(v) => v?.key && v?.name && v?.languageCode && v?.quality,
+					);
 
-					let selected = defaults?.speakerId;
-					if (!speakers.includes(selected)) {
-						selected = speakers[0];
+					const languages = getAvailableLanguages();
+					if (languages.length === 0) {
+						throw new Error("No Piper voices available");
 					}
 
-					populateLanguageSelect(languages, defaults?.languageId || "en");
-					populateVoiceSelect(speakers, selected);
+					const defaultLanguage =
+						defaults?.languageId &&
+						languages.some(
+							(lang) =>
+								lang.code === defaults.languageId ||
+								lang.code.startsWith(`${defaults.languageId}_`),
+						)
+							? languages.find(
+									(lang) =>
+										lang.code === defaults.languageId ||
+										lang.code.startsWith(`${defaults.languageId}_`),
+								)?.code || languages[0].code
+							: languages[0].code;
+					populateLanguageSelect(languages, defaultLanguage);
+
+					const qualities = getAvailableQualities(language_id);
+					const defaultQuality =
+						defaults?.qualityId && qualities.includes(defaults.qualityId)
+							? defaults.qualityId
+							: qualities[0] || "";
+					populateQualitySelect(qualities, defaultQuality);
+
+					const voicesForSelection = getAvailableVoices(
+						language_id,
+						quality_id,
+					);
+					let selected = defaults?.speakerId;
+					if (!voicesForSelection.some((voice) => voice.key === selected)) {
+						selected = voicesForSelection[0]?.key;
+					}
+					populateVoiceSelect(voicesForSelection, selected);
 				} catch (err) {
-					languageSelect.innerHTML = `<option value="en">en</option>`;
+					languageSelect.innerHTML = `<option value="">Languages unavailable</option>`;
 					languageSelect.disabled = true;
-					language_id = "en";
+					qualitySelect.innerHTML = `<option value="">Quality unavailable</option>`;
+					qualitySelect.disabled = true;
+					language_id = "";
+					quality_id = "";
 					voiceSelect.innerHTML = `<option value="">Voice loading failed</option>`;
 					voiceSelect.disabled = true;
 					speaker_id = undefined;
@@ -1527,6 +1878,7 @@
 							text: PREVIEW_TEXT,
 							speaker_id,
 							language_id,
+							quality_id,
 						}),
 					});
 
@@ -1555,7 +1907,17 @@
 			});
 
 			languageSelect.addEventListener("change", () => {
-				language_id = languageSelect.value || "en";
+				language_id = languageSelect.value || "";
+				const qualities = getAvailableQualities(language_id);
+				populateQualitySelect(qualities, quality_id);
+				const voices = getAvailableVoices(language_id, quality_id);
+				populateVoiceSelect(voices, speaker_id);
+			});
+
+			qualitySelect.addEventListener("change", () => {
+				quality_id = qualitySelect.value || "";
+				const voices = getAvailableVoices(language_id, quality_id);
+				populateVoiceSelect(voices, speaker_id);
 			});
 
 			previewVoiceBtn.addEventListener("click", previewSelectedVoice);
@@ -1563,6 +1925,7 @@
 				"change",
 				updateOrientationInputsVisibility,
 			);
+			scriptSourceSelect.addEventListener("change", updateScriptSourceInputs);
 			openSettingsBtn.addEventListener("click", loadSettingsIntoModal);
 			saveSettingsBtn.addEventListener("click", saveSettingsFromModal);
 			uploadVideosBtn.addEventListener("click", uploadBackgroundVideos);
@@ -1583,7 +1946,7 @@
 				const res = await fetch("/api/tts", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ text, speaker_id, language_id }),
+					body: JSON.stringify({ text, speaker_id, language_id, quality_id }),
 				});
 				if (!res.ok) {
 					throw await buildHttpError(res, "Failed to generate TTS audio");
@@ -1646,6 +2009,15 @@
 				});
 			}
 
+			function escapeHtml(value) {
+				return String(value || "")
+					.replaceAll("&", "&amp;")
+					.replaceAll("<", "&lt;")
+					.replaceAll(">", "&gt;")
+					.replaceAll('"', "&quot;")
+					.replaceAll("'", "&#39;");
+			}
+
 			async function fetchUploadedVideos() {
 				try {
 					const res = await fetch("/api/videos/list");
@@ -1659,6 +2031,70 @@
 					console.error("Error fetching uploaded videos:", err);
 					return [];
 				}
+			}
+
+			async function fetchGeneratedVideos() {
+				try {
+					const res = await fetch("/api/videos/generated/list");
+					if (!res.ok) {
+						console.error("Failed to fetch generated videos");
+						return [];
+					}
+					const data = await res.json();
+					return Array.isArray(data?.videos) ? data.videos : [];
+				} catch (err) {
+					console.error("Error fetching generated videos:", err);
+					return [];
+				}
+			}
+
+			function renderVideoCards(videos, options = {}) {
+				const {
+					allowRename = false,
+					allowDelete = false,
+					previewFallbackBase = "/api/videos/file/",
+				} = options;
+
+				return videos
+					.map((video) => {
+						const encodedFilename = encodeURIComponent(video.filename || "");
+						const safeFilename = escapeHtml(video.filename || "");
+						const sizeInMB = (video.size / 1024 / 1024).toFixed(2);
+						const createdDate = new Date(video.createdAt).toLocaleDateString();
+						const previewUrl =
+							typeof video.previewUrl === "string" && video.previewUrl
+								? video.previewUrl
+								: `${previewFallbackBase}${encodedFilename}`;
+
+						const actions = [];
+						if (allowRename) {
+							actions.push(
+								`<button class="btn btn-sm btn-outline-dark rename-video-btn" data-filename="${encodedFilename}">Rename</button>`,
+							);
+						}
+						if (allowDelete) {
+							actions.push(
+								`<button class="btn btn-sm btn-danger delete-video-btn" data-filename="${encodedFilename}">Delete</button>`,
+							);
+						}
+						actions.push(
+							`<a class="btn btn-sm btn-primary download-video-btn" href="${previewUrl}" download="${safeFilename}">Download</a>`,
+						);
+
+						return `
+							<article class="preview-card">
+								<div class="preview-frame">
+									<video class="preview-video" src="${previewUrl}" preload="metadata" controls muted playsinline></video>
+								</div>
+								<div class="preview-meta">${safeFilename}</div>
+								<div style="font-size: 0.8rem; color: #5c6b70; margin-top: 0.35rem;">
+									${sizeInMB}MB • ${createdDate}
+								</div>
+								${actions.length > 0 ? `<div class="video-actions">${actions.join("")}</div>` : ""}
+							</article>
+						`;
+					})
+					.join("");
 			}
 
 			async function refreshUploadedVideosList() {
@@ -1676,26 +2112,101 @@
 					return;
 				}
 
-				grid.innerHTML = videos
-					.map((video) => {
-						const sizeInMB = (video.size / 1024 / 1024).toFixed(2);
-						const createdDate = new Date(video.createdAt).toLocaleDateString();
-						return `
-							<article class="preview-card">
-								<div class="preview-frame" style="background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);">
-									<div style="font-size: 0.8rem; color: #00897b;">Video Ready</div>
-								</div>
-								<div class="preview-meta">${video.filename}</div>
-								<div style="font-size: 0.8rem; color: #5c6b70; margin-top: 0.35rem;">
-									${sizeInMB}MB • ${createdDate}
-								</div>
-								<button class="btn btn-sm btn-outline-danger mt-2 w-100" onclick="deleteUploadedVideo('${video.filename.replace(/'/g, "\\'")}')">
-									Delete
-								</button>
-							</article>
-						`;
-					})
-					.join("");
+				grid.innerHTML = renderVideoCards(videos, {
+					allowRename: true,
+					allowDelete: true,
+					previewFallbackBase: "/api/videos/file/",
+				});
+
+				grid.querySelectorAll(".delete-video-btn").forEach((btn) => {
+					btn.addEventListener("click", () => {
+						deleteUploadedVideo(decodeURIComponent(btn.dataset.filename || ""));
+					});
+				});
+
+				grid.querySelectorAll(".rename-video-btn").forEach((btn) => {
+					btn.addEventListener("click", () => {
+						renameUploadedVideo(decodeURIComponent(btn.dataset.filename || ""));
+					});
+				});
+			}
+
+			async function refreshGeneratedVideosList() {
+				const videos = await fetchGeneratedVideos();
+				const grid = document.getElementById("generatedVideosGrid");
+
+				if (!grid) return;
+
+				if (videos.length === 0) {
+					grid.innerHTML = `
+						<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #5c6b70;">
+							<p style="margin: 0; font-size: 0.92rem;">No generated videos yet. Render one from a job above.</p>
+						</div>
+					`;
+					return;
+				}
+
+				grid.innerHTML = renderVideoCards(videos, {
+					allowRename: true,
+					allowDelete: true,
+					previewFallbackBase: "/api/videos/generated/file/",
+				});
+
+				grid.querySelectorAll(".delete-video-btn").forEach((btn) => {
+					btn.addEventListener("click", () => {
+						deleteGeneratedVideo(
+							decodeURIComponent(btn.dataset.filename || ""),
+						);
+					});
+				});
+
+				grid.querySelectorAll(".rename-video-btn").forEach((btn) => {
+					btn.addEventListener("click", () => {
+						renameGeneratedVideo(
+							decodeURIComponent(btn.dataset.filename || ""),
+						);
+					});
+				});
+			}
+
+			async function refreshVideoLibraries() {
+				await Promise.all([
+					refreshUploadedVideosList(),
+					refreshGeneratedVideosList(),
+				]);
+			}
+
+			async function renameUploadedVideo(filename) {
+				if (!filename) return;
+				const suggested = filename.replace(/\.[^.]+$/, "");
+				const userInput = prompt("Rename video to:", suggested);
+				if (userInput === null) return;
+
+				const newName = userInput.trim();
+				if (!newName) {
+					showToast("Filename cannot be empty");
+					return;
+				}
+
+				try {
+					const res = await fetch(
+						`/api/videos/${encodeURIComponent(filename)}/rename`,
+						{
+							method: "PUT",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ newFilename: newName }),
+						},
+					);
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to rename video");
+					}
+
+					const data = await res.json();
+					showToast(`Renamed to ${data?.newFilename || newName}`);
+					await refreshUploadedVideosList();
+				} catch (err) {
+					showToast(err?.message || "Failed to rename video");
+				}
 			}
 
 			async function deleteUploadedVideo(filename) {
@@ -1716,6 +2227,60 @@
 					await refreshUploadedVideosList();
 				} catch (err) {
 					showToast(err?.message || "Failed to delete video");
+				}
+			}
+
+			async function renameGeneratedVideo(filename) {
+				if (!filename) return;
+				const suggested = filename.replace(/\.[^.]+$/, "");
+				const userInput = prompt("Rename generated video to:", suggested);
+				if (userInput === null) return;
+
+				const newName = userInput.trim();
+				if (!newName) {
+					showToast("Filename cannot be empty");
+					return;
+				}
+
+				try {
+					const res = await fetch(
+						`/api/videos/generated/${encodeURIComponent(filename)}/rename`,
+						{
+							method: "PUT",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ newFilename: newName }),
+						},
+					);
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to rename generated video");
+					}
+
+					const data = await res.json();
+					showToast(`Renamed to ${data?.newFilename || newName}`);
+					await refreshGeneratedVideosList();
+				} catch (err) {
+					showToast(err?.message || "Failed to rename generated video");
+				}
+			}
+
+			async function deleteGeneratedVideo(filename) {
+				if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
+
+				try {
+					const res = await fetch(
+						`/api/videos/generated/${encodeURIComponent(filename)}`,
+						{
+							method: "DELETE",
+						},
+					);
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to delete generated video");
+					}
+
+					showToast(`Deleted ${filename}`);
+					await refreshGeneratedVideosList();
+				} catch (err) {
+					showToast(err?.message || "Failed to delete generated video");
 				}
 			}
 
@@ -1762,8 +2327,8 @@
 							(failedCount > 0 ? ` (${failedCount} failed)` : ""),
 					);
 
-					// Refresh the uploaded videos list
-					await refreshUploadedVideosList();
+					// Refresh both library tabs
+					await refreshVideoLibraries();
 
 					// Log job details if needed
 					if (Array.isArray(data?.jobs)) {
@@ -1781,7 +2346,8 @@
 
 			initVoicePicker();
 			initOrientationPicker();
-			refreshUploadedVideosList();
+			updateScriptSourceInputs();
+			refreshVideoLibraries();
 		</script>
 	</body>
 </html>

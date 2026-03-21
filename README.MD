@@ -15,7 +15,7 @@ Your support helps keep this project alive and free for the community. Thank you
 
 - Prompt-based script generation with Google Gemini
 - Manual script approval and editing before rendering
-- Voice synthesis with Coqui TTS
+- Voice synthesis with Piper TTS
 - Forced alignment with Aeneas
 - Video composition with FFmpeg
 - Selectable output orientation (portrait, landscape, square, original, custom)
@@ -34,8 +34,8 @@ Your support helps keep this project alive and free for the community. Thank you
 3. **Approve Script**  
    Review and optionally edit the script. Rendering starts only after approval.
 
-4. **Text-to-Speech (Coqui)**  
-   The approved script is converted to speech using Coqui TTS.
+4. **Text-to-Speech (Piper)**  
+   The approved script is converted to speech using Piper TTS.
 
 5. **Subtitle Alignment (Aeneas)**  
    `speechalign` aligns the generated audio with the script to produce timed subtitles.
@@ -55,7 +55,7 @@ Your support helps keep this project alive and free for the community. Thank you
 ```
 viral_faceless/
 ├── trendscraper/      # Gemini + FFmpeg composition API
-├── coqui/             # Coqui TTS container
+├── piper/             # Piper TTS container
 ├── speechalign/       # Forced alignment via Aeneas
 ├── nginx/             # Web interface + reverse proxy
 ├── /videos/           # Background video clips (e.g., gameplay, press machine)

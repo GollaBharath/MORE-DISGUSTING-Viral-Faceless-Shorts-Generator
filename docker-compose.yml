@@ -10,6 +10,10 @@ services:
       - COQUI_SPEAKER_ID
       - COQUI_LANGUAGE_ID
       - TTS_UPSTREAM_TIMEOUT_MS
+      - PIPER_BASE_URL
+      - PIPER_SERVER_URL
+      - PIPER_VOICE
+      - PIPER_LANGUAGE
       - DEFAULT_VIDEO_ORIENTATION
       - DEFAULT_VIDEO_WIDTH
       - DEFAULT_VIDEO_HEIGHT
@@ -19,13 +23,16 @@ services:
     volumes:
       - ./videos:/mnt/videos
       - ./data:/app/data
-  coqui:
+  piper:
     build:
-      context: ./coqui
+      context: ./piper
     environment:
-      - COQUI_TOS_AGREED=1
+      - PIPER_VOICE
+      - PIPER_LANGUAGE
+      - PIPER_MODEL_URL
+      - PIPER_CONFIG_URL
     volumes:
-      - coqui_models:/root/.local/share/tts
+      - piper_models:/models
   speechalign:
     build:
       context: ./speechalign
@@ -38,8 +45,8 @@ services:
       - ./nginx/html:/usr/share/nginx/html:ro
     depends_on:
       - trendscraper
-      - coqui
+      - piper
       - speechalign
 
 volumes:
-  coqui_models:
+  piper_models:
