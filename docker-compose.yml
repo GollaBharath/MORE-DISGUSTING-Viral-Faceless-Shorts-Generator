@@ -1,5 +1,6 @@
 services:
   trendscraper:
+    restart: unless-stopped
     build:
       context: ./trendscraper
     environment:
@@ -24,6 +25,7 @@ services:
       - ./videos:/mnt/videos
       - ./data:/app/data
   piper:
+    restart: unless-stopped
     build:
       context: ./piper
     environment:
@@ -34,9 +36,11 @@ services:
     volumes:
       - piper_models:/models
   speechalign:
+    restart: unless-stopped
     build:
       context: ./speechalign
   nginx:
+    restart: unless-stopped
     image: nginx:latest
     ports:
       - "${WEB_PORT:-8080}:80"
