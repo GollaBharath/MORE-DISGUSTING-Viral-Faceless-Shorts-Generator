@@ -482,6 +482,50 @@
 								id="scriptPrompt"
 								rows="5"
 								placeholder="Example: 5 easy gardening hacks for beginners."></textarea>
+							<div class="form-grid mt-2">
+								<div>
+									<label for="promptPresetSelect" class="form-label"
+										>Saved prompt presets</label
+									>
+									<select id="promptPresetSelect" class="form-select">
+										<option value="">No preset selected</option>
+									</select>
+								</div>
+								<div>
+									<label for="promptPresetName" class="form-label"
+										>Preset name</label
+									>
+									<input
+										id="promptPresetName"
+										type="text"
+										class="form-control"
+										placeholder="Example: Gardening Hooks" />
+								</div>
+							</div>
+							<div class="quick-tools mt-2">
+								<button
+									type="button"
+									class="btn btn-outline-dark"
+									id="loadPromptPresetBtn">
+									Load Preset
+								</button>
+								<button
+									type="button"
+									class="btn btn-outline-secondary"
+									id="savePromptPresetBtn">
+									Save Preset
+								</button>
+								<button
+									type="button"
+									class="btn btn-outline-secondary"
+									id="deletePromptPresetBtn">
+									Delete Preset
+								</button>
+							</div>
+							<div class="text-muted mt-1" style="font-size: 0.8rem">
+								Choose a preset and generate immediately, or load one into the
+								box to edit it first.
+							</div>
 						</div>
 
 						<div id="directScriptGroup" class="mt-2 d-none">
@@ -829,6 +873,34 @@
 										Uploaded files are added to your selected input source
 										folder.
 									</div>
+									<hr class="my-3" />
+									<label for="youtubeImportUrl" class="form-label mb-1"
+										>Import From YouTube</label
+									>
+									<input
+										id="youtubeImportUrl"
+										type="url"
+										class="form-control"
+										placeholder="https://www.youtube.com/watch?v=..." />
+									<div class="d-flex gap-2 mt-2">
+										<button
+											class="btn btn-outline-primary btn-sm"
+											id="youtubeImportBtn">
+											Download + Split Into 56s Clips
+										</button>
+									</div>
+									<div
+										class="text-muted mt-1"
+										style="font-size: 0.8rem"
+										id="youtubeImportStatus">
+										The backend downloads the video, keeps only full 56 second
+										clips, saves them to the input folder, and deletes the
+										original plus any leftover tail clip.
+									</div>
+									<div
+										class="text-muted mt-2"
+										style="font-size: 0.8rem"
+										id="youtubeImportJobs"></div>
 								</div>
 							</div>
 						</div>
@@ -901,6 +973,11 @@
 			const uploadVideosInput = document.getElementById("uploadVideosInput");
 			const uploadVideosBtn = document.getElementById("uploadVideosBtn");
 			const uploadVideosStatus = document.getElementById("uploadVideosStatus");
+			const youtubeImportUrlInput = document.getElementById("youtubeImportUrl");
+			const youtubeImportBtn = document.getElementById("youtubeImportBtn");
+			const youtubeImportStatus =
+				document.getElementById("youtubeImportStatus");
+			const youtubeImportJobs = document.getElementById("youtubeImportJobs");
 			const customWidthInput = document.getElementById("customWidth");
 			const customHeightInput = document.getElementById("customHeight");
 			const customWidthGroup = document.getElementById("customWidthGroup");
@@ -908,6 +985,18 @@
 			const scriptSourceSelect = document.getElementById("scriptSource");
 			const scriptPromptInput = document.getElementById("scriptPrompt");
 			const scriptPromptGroup = document.getElementById("scriptPromptGroup");
+			const promptPresetSelect = document.getElementById("promptPresetSelect");
+			const promptPresetNameInput =
+				document.getElementById("promptPresetName");
+			const loadPromptPresetBtn = document.getElementById(
+				"loadPromptPresetBtn",
+			);
+			const savePromptPresetBtn = document.getElementById(
+				"savePromptPresetBtn",
+			);
+			const deletePromptPresetBtn = document.getElementById(
+				"deletePromptPresetBtn",
+			);
 			const directScriptInput = document.getElementById("directScript");
 			const directScriptGroup = document.getElementById("directScriptGroup");
 			const generateScriptBtn = document.getElementById("generateScriptBtn");
@@ -945,9 +1034,12 @@
 			let language_id = "";
 			let quality_id = "";
 			let defaultPromptIdeaValue = "";
+			let promptPresets = [];
 			let availableVoiceOptions = [];
 			let isPreviewPlaying = false;
 			let previewAudioUrl = null;
+			let youtubeImportPollTimer = null;
+			let activeYoutubeImportJobId = "";
 			const previewAudio = new Audio();
 
 			function showToast(message) {
@@ -1036,6 +1128,185 @@
 				if (!text) return "";
 				if (text.length <= maxLength) return text;
 				return `${text.slice(0, maxLength)}...`;
+			}
+
+			function sanitizePromptPresets(value) {
+				if (!Array.isArray(value)) return [];
+
+				return value
+					.map((preset, index) => {
+						if (!preset || typeof preset !== "object" || Array.isArray(preset)) {
+							return null;
+						}
+
+						const name =
+							typeof preset.name === "string" ? preset.name.trim() : "";
+						const prompt =
+							typeof preset.prompt === "string" ? preset.prompt.trim() : "";
+						if (!name || !prompt) return null;
+
+						const id =
+							typeof preset.id === "string" && preset.id.trim()
+								? preset.id.trim()
+								: `preset_${index + 1}`;
+						return {
+							id,
+							name: name.slice(0, 120),
+							prompt: prompt.slice(0, 5000),
+						};
+					})
+					.filter(Boolean)
+					.slice(0, 50);
+			}
+
+			function populatePromptPresetSelect(selectedId = "") {
+				const desiredId = String(selectedId || "");
+				const previousValue = promptPresetSelect.value || "";
+				const nextValue = desiredId || previousValue;
+
+				promptPresetSelect.innerHTML =
+					'<option value="">No preset selected</option>';
+				promptPresets.forEach((preset) => {
+					const option = document.createElement("option");
+					option.value = preset.id;
+					option.textContent = preset.name;
+					promptPresetSelect.appendChild(option);
+				});
+
+				if (
+					nextValue &&
+					promptPresets.some((preset) => preset.id === nextValue)
+				) {
+					promptPresetSelect.value = nextValue;
+				} else {
+					promptPresetSelect.value = "";
+				}
+
+				syncPromptPresetName();
+			}
+
+			function applyPromptPresets(presets, selectedId = "") {
+				promptPresets = sanitizePromptPresets(presets);
+				populatePromptPresetSelect(selectedId);
+			}
+
+			function getSelectedPromptPreset() {
+				const selectedId = promptPresetSelect.value || "";
+				return promptPresets.find((preset) => preset.id === selectedId) || null;
+			}
+
+			function syncPromptPresetName() {
+				const selectedPreset = getSelectedPromptPreset();
+				promptPresetNameInput.value = selectedPreset?.name || "";
+				deletePromptPresetBtn.disabled = !selectedPreset;
+				loadPromptPresetBtn.disabled = !selectedPreset;
+			}
+
+			function buildPromptPresetId() {
+				return `preset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+			}
+
+			async function persistPromptPresets(
+				nextPresets,
+				{ selectedId = "", successMessage = "Prompt presets saved" } = {},
+			) {
+				const res = await fetch("/api/settings", {
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ prompt_presets: nextPresets }),
+				});
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to save prompt presets");
+				}
+
+				const data = await res.json();
+				const settings = data?.settings || {};
+				applyPromptPresets(settings.prompt_presets || nextPresets, selectedId);
+				if (typeof settings.default_prompt_idea === "string") {
+					applyDefaultPromptIdeaToInput(settings.default_prompt_idea);
+				}
+				showToast(successMessage);
+			}
+
+			function loadSelectedPromptPresetIntoInput() {
+				const selectedPreset = getSelectedPromptPreset();
+				if (!selectedPreset) {
+					showToast("Select a preset first");
+					return;
+				}
+
+				scriptPromptInput.value = selectedPreset.prompt;
+				promptPresetNameInput.value = selectedPreset.name;
+				showToast(`Loaded preset: ${selectedPreset.name}`);
+			}
+
+			async function saveCurrentPromptPreset() {
+				try {
+					const prompt = scriptPromptInput.value.trim();
+					if (!prompt) {
+						showToast("Write a prompt first");
+						return;
+					}
+
+					const selectedPreset = getSelectedPromptPreset();
+					const requestedName = promptPresetNameInput.value.trim();
+					const targetName = requestedName || selectedPreset?.name || "";
+					if (!targetName) {
+						showToast("Add a preset name first");
+						return;
+					}
+
+					const normalizedName = targetName.toLowerCase();
+					const existingPreset =
+						selectedPreset ||
+						promptPresets.find(
+							(preset) => preset.name.toLowerCase() === normalizedName,
+						);
+					const nextPreset = {
+						id: existingPreset?.id || buildPromptPresetId(),
+						name: targetName,
+						prompt,
+					};
+					const nextPresets = existingPreset
+						? promptPresets.map((preset) =>
+								preset.id === existingPreset.id ? nextPreset : preset,
+							)
+						: [...promptPresets, nextPreset];
+
+					await persistPromptPresets(nextPresets, {
+						selectedId: nextPreset.id,
+						successMessage: existingPreset
+							? `Updated preset: ${nextPreset.name}`
+							: `Saved preset: ${nextPreset.name}`,
+					});
+				} catch (err) {
+					showToast(err?.message || "Failed to save preset");
+				}
+			}
+
+			async function deleteCurrentPromptPreset() {
+				try {
+					const selectedPreset = getSelectedPromptPreset();
+					if (!selectedPreset) {
+						showToast("Select a preset first");
+						return;
+					}
+
+					const confirmed = window.confirm(
+						`Delete preset "${selectedPreset.name}"?`,
+					);
+					if (!confirmed) return;
+
+					const nextPresets = promptPresets.filter(
+						(preset) => preset.id !== selectedPreset.id,
+					);
+					await persistPromptPresets(nextPresets, {
+						selectedId: "",
+						successMessage: `Deleted preset: ${selectedPreset.name}`,
+					});
+				} catch (err) {
+					showToast(err?.message || "Failed to delete preset");
+				}
 			}
 
 			function updateScriptSourceInputs() {
@@ -1239,7 +1510,9 @@
 				const source =
 					scriptSourceSelect?.value === "direct" ? "direct" : "gemini";
 				const prompt = scriptPromptInput.value.trim();
-				const effectivePrompt = prompt || defaultPromptIdeaValue;
+				const selectedPreset = getSelectedPromptPreset();
+				const presetPrompt = selectedPreset?.prompt || "";
+				const effectivePrompt = prompt || presetPrompt || defaultPromptIdeaValue;
 				const directScript = directScriptInput.value.trim();
 
 				if (source === "gemini" && !effectivePrompt) {
@@ -1758,6 +2031,85 @@
 				return res.json();
 			}
 
+			async function fetchYoutubeImportJob(jobId) {
+				const res = await fetch(
+					`/api/jobs/youtube-imports/${encodeURIComponent(jobId)}`,
+				);
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to fetch import job");
+				}
+				return res.json();
+			}
+
+			async function fetchYoutubeImportJobs() {
+				const res = await fetch("/api/jobs/youtube-imports?limit=5");
+				if (!res.ok) {
+					throw await buildHttpError(res, "Failed to fetch import jobs");
+				}
+				const data = await res.json();
+				return Array.isArray(data?.jobs) ? data.jobs : [];
+			}
+
+			function renderYoutubeImportJobs(jobs) {
+				if (!Array.isArray(jobs) || jobs.length === 0) {
+					youtubeImportJobs.textContent = "No YouTube import jobs yet.";
+					return;
+				}
+
+				youtubeImportJobs.innerHTML = "";
+				jobs.forEach((job) => {
+					const row = document.createElement("div");
+					const clipsText =
+						Number(job?.clipsCreated) > 0 ? ` | clips: ${job.clipsCreated}` : "";
+					row.textContent = `${job?.status || "unknown"} | ${job?.message || "No details"}${clipsText}`;
+					youtubeImportJobs.appendChild(row);
+				});
+			}
+
+			function stopYoutubeImportPolling() {
+				if (youtubeImportPollTimer) {
+					clearInterval(youtubeImportPollTimer);
+					youtubeImportPollTimer = null;
+				}
+			}
+
+			async function refreshYoutubeImportJobs(focusJobId = "") {
+				const jobs = await fetchYoutubeImportJobs();
+				if (focusJobId) {
+					const focusedJob = await fetchYoutubeImportJob(focusJobId);
+					const remainingJobs = jobs.filter((job) => job.id !== focusJobId);
+					renderYoutubeImportJobs([focusedJob, ...remainingJobs]);
+					youtubeImportStatus.textContent =
+						focusedJob?.message || "Import job updated.";
+					if (
+						focusedJob?.status === "completed" ||
+						focusedJob?.status === "failed"
+					) {
+						activeYoutubeImportJobId = "";
+						stopYoutubeImportPolling();
+						await refreshVideoLibraries();
+					}
+					return focusedJob;
+				}
+
+				renderYoutubeImportJobs(jobs);
+				return jobs[0] || null;
+			}
+
+			function startYoutubeImportPolling(jobId) {
+				activeYoutubeImportJobId = jobId || "";
+				stopYoutubeImportPolling();
+				if (!activeYoutubeImportJobId) return;
+
+				youtubeImportPollTimer = window.setInterval(async () => {
+					try {
+						await refreshYoutubeImportJobs(activeYoutubeImportJobId);
+					} catch (_err) {
+						// Keep the existing status text if polling fails temporarily.
+					}
+				}, 4000);
+			}
+
 			function populateSettingsForm(settings) {
 				settingsInputVideosDir.value = settings?.input_videos_dir || "";
 				settingsOutputVideosDir.value = settings?.output_videos_dir || "";
@@ -1775,6 +2127,7 @@
 				settingsSubtitlesDefault.checked =
 					settings?.subtitles_enabled_by_default !== false;
 				applyDefaultPromptIdeaToInput(settings?.default_prompt_idea || "");
+				applyPromptPresets(settings?.prompt_presets || []);
 			}
 
 			function applyDefaultPromptIdeaToInput(defaultPromptIdea) {
@@ -2010,6 +2363,15 @@
 					}
 					const settings = await fetchRuntimeSettings();
 					populateSettingsForm(settings);
+					const latestJob = await refreshYoutubeImportJobs();
+					if (
+						latestJob &&
+						(latestJob.status === "pending" || latestJob.status === "running")
+					) {
+						startYoutubeImportPolling(latestJob.id);
+					} else {
+						stopYoutubeImportPolling();
+					}
 				} catch (err) {
 					showToast(err?.message || "Failed to load settings");
 				}
@@ -2019,8 +2381,10 @@
 				try {
 					const settings = await fetchRuntimeSettings();
 					applyDefaultPromptIdeaToInput(settings?.default_prompt_idea || "");
+					applyPromptPresets(settings?.prompt_presets || []);
 				} catch (_err) {
 					applyDefaultPromptIdeaToInput("");
+					applyPromptPresets([]);
 				}
 			}
 
@@ -2054,9 +2418,12 @@
 						throw await buildHttpError(res, "Failed to save settings");
 					}
 
+					const data = await res.json();
+					const settings = data?.settings || payload;
 					await initOrientationPicker();
 					await initVoicePicker();
-					applyDefaultPromptIdeaToInput(payload.default_prompt_idea);
+					applyDefaultPromptIdeaToInput(settings.default_prompt_idea || "");
+					applyPromptPresets(settings.prompt_presets || promptPresets);
 					await refreshVideoLibraries();
 					showToast("Settings saved");
 
@@ -2235,6 +2602,13 @@
 				updateOrientationInputsVisibility,
 			);
 			scriptSourceSelect.addEventListener("change", updateScriptSourceInputs);
+			promptPresetSelect.addEventListener("change", syncPromptPresetName);
+			loadPromptPresetBtn.addEventListener(
+				"click",
+				loadSelectedPromptPresetIntoInput,
+			);
+			savePromptPresetBtn.addEventListener("click", saveCurrentPromptPreset);
+			deletePromptPresetBtn.addEventListener("click", deleteCurrentPromptPreset);
 			openSettingsBtn.addEventListener("click", loadSettingsIntoModal);
 			saveSettingsBtn.addEventListener("click", saveSettingsFromModal);
 			settingsUseCurrentVoiceBtn.addEventListener(
@@ -2242,6 +2616,11 @@
 				applyCurrentVoiceSelectionToSettings,
 			);
 			uploadVideosBtn.addEventListener("click", uploadBackgroundVideos);
+			youtubeImportBtn.addEventListener("click", startYoutubeImport);
+			settingsModalEl.addEventListener(
+				"hidden.bs.modal",
+				stopYoutubeImportPolling,
+			);
 
 			document.querySelectorAll(".copy-tag-btn").forEach((btn) => {
 				btn.addEventListener("click", () => {
@@ -2654,6 +3033,46 @@
 				} finally {
 					uploadVideosBtn.disabled = false;
 					uploadVideosBtn.textContent = "Upload Videos";
+				}
+			}
+
+			async function startYoutubeImport() {
+				const url = youtubeImportUrlInput.value.trim();
+				if (!url) {
+					showToast("Paste a YouTube link first");
+					return;
+				}
+
+				youtubeImportBtn.disabled = true;
+				youtubeImportBtn.textContent = "Starting...";
+				youtubeImportStatus.textContent =
+					"Starting backend YouTube import job...";
+
+				try {
+					const res = await fetch("/api/videos/import-youtube", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ url }),
+					});
+					if (!res.ok) {
+						throw await buildHttpError(res, "Failed to start YouTube import");
+					}
+
+					const data = await res.json();
+					activeYoutubeImportJobId = data?.jobId || "";
+					youtubeImportUrlInput.value = "";
+					youtubeImportStatus.textContent =
+						"Import started in the backend. You can close the modal or leave the page.";
+					showToast("YouTube import started");
+					await refreshYoutubeImportJobs(activeYoutubeImportJobId);
+					startYoutubeImportPolling(activeYoutubeImportJobId);
+				} catch (err) {
+					youtubeImportStatus.textContent =
+						err?.message || "Failed to start YouTube import.";
+					showToast(err?.message || "Failed to start YouTube import");
+				} finally {
+					youtubeImportBtn.disabled = false;
+					youtubeImportBtn.textContent = "Download + Split Into 56s Clips";
 				}
 			}
 

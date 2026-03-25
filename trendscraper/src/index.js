@@ -1,7 +1,7 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import { v4 as uuidv4 } from "uuid";
 import { DatabaseSync } from "node:sqlite";
 import multer from "multer";
@@ -54,6 +54,8 @@ const APP_DB_PATH = process.env.APP_DB_PATH || "/app/data/settings.db";
 const DEFAULT_INPUT_VIDEOS_DIR = process.env.INPUT_VIDEOS_DIR || "/mnt/videos";
 const DEFAULT_OUTPUT_VIDEOS_DIR =
 	process.env.OUTPUT_VIDEOS_DIR || "/mnt/videos/generated";
+const YOUTUBE_CLIP_DURATION_SECONDS = 56;
+const YOUTUBE_TAIL_DELETE_THRESHOLD_SECONDS = 55.5;
 const DEFAULT_AI_PROMPT_TEMPLATE = `You are a professional short-form content strategist and scriptwriter.
 
 You will receive a USER_PROMPT describing what kind of video to create.
@@ -82,6 +84,7 @@ const SETTINGS_SCHEMA = {
 	locale: "string",
 	subtitles_enabled_by_default: "bool",
 	default_prompt_idea: "string",
+	prompt_presets: "prompt_presets",
 };
 
 const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".mkv", ".webm"]);
@@ -151,6 +154,21 @@ function initSettingsDatabase(dbPath) {
 		
 		CREATE INDEX IF NOT EXISTS idx_upload_jobs_status ON upload_jobs(status);
 		CREATE INDEX IF NOT EXISTS idx_upload_jobs_created_at ON upload_jobs(created_at);
+
+		CREATE TABLE IF NOT EXISTS youtube_import_jobs (
+			id TEXT PRIMARY KEY,
+			source_url TEXT NOT NULL,
+			status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'completed', 'failed')),
+			message TEXT,
+			downloaded_filename TEXT,
+			clips_created INTEGER NOT NULL DEFAULT 0,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			completed_at TEXT
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_youtube_import_jobs_status ON youtube_import_jobs(status);
+		CREATE INDEX IF NOT EXISTS idx_youtube_import_jobs_created_at ON youtube_import_jobs(created_at);
 	`);
 
 	return database;
@@ -222,6 +240,7 @@ function loadRuntimeSettings() {
 			true,
 		),
 		defaultPromptIdea: getSetting("default_prompt_idea", ""),
+		promptPresets: parsePromptPresets(getSetting("prompt_presets", "[]")),
 	};
 }
 
@@ -238,7 +257,55 @@ function serializeRuntimeSettings(settings) {
 		locale: settings.locale,
 		subtitles_enabled_by_default: settings.subtitlesEnabledByDefault,
 		default_prompt_idea: settings.defaultPromptIdea,
+		prompt_presets: Array.isArray(settings.promptPresets)
+			? settings.promptPresets
+			: [],
 	};
+}
+
+function parsePromptPresets(value) {
+	if (!value) return [];
+
+	try {
+		const parsed = JSON.parse(value);
+		return sanitizePromptPresets(parsed);
+	} catch (err) {
+		console.warn("Failed to parse saved prompt presets:", err);
+		return [];
+	}
+}
+
+function sanitizePromptPresets(value) {
+	if (!Array.isArray(value)) {
+		throw new Error("Prompt presets must be an array");
+	}
+
+	return value
+		.map((preset, index) => {
+			if (!preset || typeof preset !== "object" || Array.isArray(preset)) {
+				return null;
+			}
+
+			const rawName =
+				typeof preset.name === "string" ? preset.name.trim() : "";
+			const rawPrompt =
+				typeof preset.prompt === "string" ? preset.prompt.trim() : "";
+			if (!rawName || !rawPrompt) {
+				return null;
+			}
+
+			const rawId =
+				typeof preset.id === "string" && preset.id.trim()
+					? preset.id.trim()
+					: `preset_${index + 1}`;
+			return {
+				id: rawId.slice(0, 120),
+				name: rawName.slice(0, 120),
+				prompt: rawPrompt.slice(0, 5000),
+			};
+		})
+		.filter(Boolean)
+		.slice(0, 50);
 }
 
 function validateAndNormalizeSettingValue(key, value) {
@@ -277,6 +344,12 @@ function validateAndNormalizeSettingValue(key, value) {
 			throw new Error(`Setting '${key}' must be a boolean`);
 		}
 		return value ? "true" : "false";
+	}
+
+	if (expectedType === "prompt_presets") {
+		const normalized =
+			typeof value === "string" ? JSON.parse(value) : value;
+		return JSON.stringify(sanitizePromptPresets(normalized));
 	}
 
 	throw new Error(`Unsupported schema type for '${key}'`);
@@ -382,6 +455,80 @@ function sanitizeUploadedFileName(originalName) {
 		.slice(0, 80);
 	const ext = String(parsed.ext || "").toLowerCase();
 	return `${safeBase || "video"}_${Date.now()}_${uuidv4().slice(0, 8)}${ext}`;
+}
+
+function sanitizeYoutubeDownloadBaseName(originalName) {
+	const parsed = path.parse(originalName || "youtube_video");
+	const safeBase = (parsed.name || "youtube_video")
+		.replace(/[^a-zA-Z0-9._-]/g, "_")
+		.replace(/_+/g, "_")
+		.replace(/^_+|_+$/g, "")
+		.slice(0, 80);
+	return safeBase || "youtube_video";
+}
+
+function validateYoutubeUrl(rawValue) {
+	if (typeof rawValue !== "string" || !rawValue.trim()) {
+		const err = new Error("YouTube URL is required");
+		err.status = 400;
+		throw err;
+	}
+
+	let parsed;
+	try {
+		parsed = new URL(rawValue.trim());
+	} catch (_err) {
+		const err = new Error("Invalid YouTube URL");
+		err.status = 400;
+		throw err;
+	}
+
+	const hostname = parsed.hostname.toLowerCase();
+	const isYoutubeHost =
+		hostname === "youtube.com" ||
+		hostname === "www.youtube.com" ||
+		hostname === "m.youtube.com" ||
+		hostname === "youtu.be" ||
+		hostname.endsWith(".youtube.com");
+	if (!isYoutubeHost) {
+		const err = new Error("Only YouTube links are supported");
+		err.status = 400;
+		throw err;
+	}
+
+	return parsed.toString();
+}
+
+function createYoutubeImportJob(sourceUrl) {
+	const id = uuidv4();
+	db.prepare(
+		`INSERT INTO youtube_import_jobs (id, source_url, status, message)
+		 VALUES (?, ?, 'pending', 'Queued')`,
+	).run(id, sourceUrl);
+	return id;
+}
+
+function updateYoutubeImportJob(jobId, fields = {}) {
+	const allowedFields = {
+		status: "status",
+		message: "message",
+		downloadedFilename: "downloaded_filename",
+		clipsCreated: "clips_created",
+		startedAt: "started_at",
+		completedAt: "completed_at",
+	};
+
+	const entries = Object.entries(fields).filter(
+		([key, value]) => key in allowedFields && value !== undefined,
+	);
+	if (entries.length === 0) return;
+
+	const sets = entries.map(([key]) => `${allowedFields[key]} = ?`);
+	const values = entries.map(([, value]) => value);
+	values.push(jobId);
+	db.prepare(
+		`UPDATE youtube_import_jobs SET ${sets.join(", ")} WHERE id = ?`,
+	).run(...values);
 }
 
 function calculateFileChecksum(filePath) {
@@ -904,6 +1051,27 @@ app.post("/videos/upload", (req, res) => {
 	});
 });
 
+app.post("/videos/import-youtube", (req, res) => {
+	try {
+		const sourceUrl = validateYoutubeUrl(req.body?.url);
+		const jobId = createYoutubeImportJob(sourceUrl);
+		runYoutubeImportJob(jobId, sourceUrl);
+
+		return res.status(202).json({
+			success: true,
+			jobId,
+			status: "pending",
+			message: "YouTube import started",
+		});
+	} catch (err) {
+		const status = Number.isFinite(err?.status) ? err.status : 500;
+		if (status >= 500) {
+			console.error("Failed to start YouTube import:", err);
+		}
+		return res.status(status).json({ error: String(err?.message || err) });
+	}
+});
+
 app.put("/settings", (req, res) => {
 	const payload = req.body;
 	if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -1341,6 +1509,61 @@ app.get("/jobs/uploads", (req, res) => {
 	}
 });
 
+app.get("/jobs/youtube-imports/:jobId", (req, res) => {
+	try {
+		const job = db
+			.prepare("SELECT * FROM youtube_import_jobs WHERE id = ?")
+			.get(req.params.jobId);
+		if (!job) {
+			return res.status(404).json({ error: "Job not found" });
+		}
+
+		return res.json({
+			id: job.id,
+			sourceUrl: job.source_url,
+			status: job.status,
+			message: job.message,
+			downloadedFilename: job.downloaded_filename,
+			clipsCreated: job.clips_created,
+			createdAt: job.created_at,
+			startedAt: job.started_at,
+			completedAt: job.completed_at,
+		});
+	} catch (err) {
+		console.error("Failed to get YouTube import job:", err);
+		return res.status(500).json({ error: String(err) });
+	}
+});
+
+app.get("/jobs/youtube-imports", (req, res) => {
+	try {
+		const limit = Math.min(Number.parseInt(req.query.limit || "20", 10), 100);
+		const jobs = db
+			.prepare(
+				"SELECT * FROM youtube_import_jobs ORDER BY created_at DESC LIMIT ?",
+			)
+			.all(limit);
+
+		return res.json({
+			jobs: jobs.map((job) => ({
+				id: job.id,
+				sourceUrl: job.source_url,
+				status: job.status,
+				message: job.message,
+				downloadedFilename: job.downloaded_filename,
+				clipsCreated: job.clips_created,
+				createdAt: job.created_at,
+				startedAt: job.started_at,
+				completedAt: job.completed_at,
+			})),
+			count: jobs.length,
+		});
+	} catch (err) {
+		console.error("Failed to list YouTube import jobs:", err);
+		return res.status(500).json({ error: String(err) });
+	}
+});
+
 // Delete uploaded video and its job record
 app.delete("/videos/:filename", (req, res) => {
 	try {
@@ -1394,11 +1617,181 @@ function execPromise(cmd) {
 	});
 }
 
+function execFilePromise(file, args, options = {}) {
+	return new Promise((resolve, reject) => {
+		execFile(file, args, options, (error, stdout, stderr) => {
+			if (error) {
+				const err = new Error(
+					String(stderr || stdout || error.message || "Command failed").trim(),
+				);
+				err.stdout = stdout;
+				err.stderr = stderr;
+				err.cause = error;
+				reject(err);
+				return;
+			}
+			resolve({ stdout, stderr });
+		});
+	});
+}
+
 async function getDuration(filePath) {
 	const stdout = await execPromise(
 		`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
 	);
 	return parseFloat(stdout.trim());
+}
+
+function recordImportedClip(filename, fileSize) {
+	db.prepare(
+		`INSERT INTO upload_jobs (id, filename, size, status, checksum, created_at, completed_at)
+		 VALUES (?, ?, ?, 'completed', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+	).run(uuidv4(), filename, fileSize);
+}
+
+async function downloadYoutubeVideo(url, workingDir) {
+	const outputTemplate = path.join(workingDir, "source.%(ext)s");
+	await execFilePromise(
+		"yt-dlp",
+		[
+			"--no-playlist",
+			"--merge-output-format",
+			"mp4",
+			"-o",
+			outputTemplate,
+			url,
+		],
+		{ maxBuffer: 1024 * 1024 * 20 },
+	);
+
+	const files = fs
+		.readdirSync(workingDir)
+		.filter((filename) => {
+			if (!/^source\./i.test(filename)) return false;
+			return VIDEO_EXTENSIONS.has(path.extname(filename).toLowerCase());
+		})
+		.sort();
+
+	if (files.length === 0) {
+		throw new Error("Download finished but no video file was created");
+	}
+
+	return path.join(workingDir, files[0]);
+}
+
+async function splitYoutubeVideoIntoClips(sourcePath, destinationDir) {
+	const sourceExt = path.extname(sourcePath).toLowerCase() || ".mp4";
+	const safeBase = `${sanitizeYoutubeDownloadBaseName(path.basename(sourcePath))}_${Date.now()}_${uuidv4().slice(0, 8)}`;
+	const segmentPattern = path.join(destinationDir, `${safeBase}_part_%03d${sourceExt}`);
+
+	await execFilePromise(
+		"ffmpeg",
+		[
+			"-y",
+			"-i",
+			sourcePath,
+			"-map",
+			"0",
+			"-c:v",
+			"libx264",
+			"-c:a",
+			"aac",
+			"-force_key_frames",
+			`expr:gte(t,n_forced*${YOUTUBE_CLIP_DURATION_SECONDS})`,
+			"-f",
+			"segment",
+			"-segment_time",
+			String(YOUTUBE_CLIP_DURATION_SECONDS),
+			"-reset_timestamps",
+			"1",
+			segmentPattern,
+		],
+		{ maxBuffer: 1024 * 1024 * 20 },
+	);
+
+	const createdFiles = fs
+		.readdirSync(destinationDir)
+		.filter((filename) => {
+			if (!filename.startsWith(`${safeBase}_part_`)) return false;
+			return path.extname(filename).toLowerCase() === sourceExt;
+		})
+		.sort();
+
+	if (createdFiles.length === 0) {
+		throw new Error("Video split finished but no clips were created");
+	}
+
+	const keptFiles = [];
+	for (const filename of createdFiles) {
+		const clipPath = path.join(destinationDir, filename);
+		const duration = await getDuration(clipPath);
+		if (
+			!Number.isFinite(duration) ||
+			duration < YOUTUBE_TAIL_DELETE_THRESHOLD_SECONDS
+		) {
+			fs.unlinkSync(clipPath);
+			continue;
+		}
+
+		const stats = fs.statSync(clipPath);
+		recordImportedClip(filename, stats.size);
+		keptFiles.push({
+			filename,
+			duration,
+			size: stats.size,
+		});
+	}
+
+	return keptFiles;
+}
+
+async function runYoutubeImportJob(jobId, sourceUrl) {
+	const workingDir = `/tmp/youtube_import_${jobId}`;
+	let downloadedFilePath = null;
+
+	try {
+		ensureDirectoryExists(runtimeSettings.inputVideosDir);
+		fs.mkdirSync(workingDir, { recursive: true });
+		updateYoutubeImportJob(jobId, {
+			status: "running",
+			message: "Downloading YouTube video...",
+			startedAt: new Date().toISOString(),
+		});
+
+		downloadedFilePath = await downloadYoutubeVideo(sourceUrl, workingDir);
+		updateYoutubeImportJob(jobId, {
+			message: "Splitting video into 56 second clips...",
+			downloadedFilename: path.basename(downloadedFilePath),
+		});
+
+		const clips = await splitYoutubeVideoIntoClips(
+			downloadedFilePath,
+			runtimeSettings.inputVideosDir,
+		);
+
+		fs.unlinkSync(downloadedFilePath);
+		updateYoutubeImportJob(jobId, {
+			status: "completed",
+			message:
+				clips.length > 0
+					? `Imported ${clips.length} clip(s) to ${runtimeSettings.inputVideosDir}`
+					: "No full 56 second clips were created",
+			clipsCreated: clips.length,
+			completedAt: new Date().toISOString(),
+		});
+	} catch (err) {
+		console.error("YouTube import job failed:", err);
+		updateYoutubeImportJob(jobId, {
+			status: "failed",
+			message: String(err?.message || err),
+			completedAt: new Date().toISOString(),
+		});
+	} finally {
+		if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
+			fs.unlinkSync(downloadedFilePath);
+		}
+		cleanup(workingDir);
+	}
 }
 
 function buildAtempoFilter(speedFactor) {
