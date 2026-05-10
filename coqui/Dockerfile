@@ -1,9 +1,5 @@
-FROM ghcr.io/coqui-ai/tts-cpu
+FROM --platform=linux/amd64 ghcr.io/coqui-ai/tts-cpu
 
 EXPOSE 5002
 
-COPY start_xtts_server.sh /start_xtts_server.sh
-COPY wsgi.py /wsgi.py
-RUN chmod +x /start_xtts_server.sh /wsgi.py
-
-ENTRYPOINT ["/start_xtts_server.sh"]
+ENTRYPOINT [ "bash", "-c", "python3 TTS/server/server.py --model_name tts_models/en/vctk/vits" ]
